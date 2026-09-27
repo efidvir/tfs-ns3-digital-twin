@@ -5,15 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cross-Repo Telecom Digital Twin Operations Dashboard</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes flowAnim {
+      from { stroke-dashoffset: 40; }
+      to { stroke-dashoffset: 0; }
+    }
+    .flow-line {
+      stroke-dasharray: 8, 4;
+      animation: flowAnim 1.2s linear infinite;
+    }
+    .flow-line-rev {
+      stroke-dasharray: 8, 4;
+      animation: flowAnim 1.2s linear infinite reverse;
+    }
+    .node-box {
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .node-box:hover rect {
+      stroke-width: 2.5px;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+  </style>
 </head>
-<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-6 min-h-screen">
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-5 min-h-screen">
 
   <div class="max-w-7xl mx-auto space-y-6">
 
     <!-- Header Banner -->
     <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-sm relative overflow-hidden">
-      <div class="absolute -right-10 -top-10 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -right-10 -top-10 w-56 h-56 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-10 -bottom-10 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
         <div class="flex items-center gap-4">
@@ -23,14 +45,14 @@
           <div>
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Cross-Repo Telecom Digital Twin Operations
+                Telecom Digital Twin — Cross-Repo Closed-Loop Operations
               </h1>
               <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                5-Stage Closed Loop
+                Live Multi-Repo Flow
               </span>
             </div>
             <p class="text-sm text-[var(--muted-foreground)] mt-1">
-              End-to-End Co-Simulation: Intent (TMF921) → NS-3 (efid@cersrv-029) → TFS Sync (:8088) → Decision Engine → Hardware Actuation (192.168.1.225)
+              Declarative Intent (TMF921) → Co-Simulation to NS-3 (efid@cersrv-029) → TFS State Sync (:8088) → AI Decision Engine → Hardware 2PC Actuation (192.168.1.225:80)
             </p>
           </div>
         </div>
@@ -43,9 +65,9 @@
       </div>
     </div>
 
-    <!-- Live System Interconnect Bar -->
+    <!-- Live System Connectivity Status Bar -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
         <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
         <div>
           <div class="text-xs text-[var(--muted-foreground)]">Intent Orchestrator</div>
@@ -53,7 +75,7 @@
         </div>
       </div>
 
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
         <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
         <div>
           <div class="text-xs text-[var(--muted-foreground)]">SDN Controller</div>
@@ -61,7 +83,7 @@
         </div>
       </div>
 
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
         <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
         <div>
           <div class="text-xs text-[var(--muted-foreground)]">Discrete-Event Core</div>
@@ -69,7 +91,7 @@
         </div>
       </div>
 
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
         <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
         <div>
           <div class="text-xs text-[var(--muted-foreground)]">Physical Hardware</div>
@@ -78,76 +100,193 @@
       </div>
     </div>
 
-    <!-- 5-Stage Stepper Pipeline -->
-    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
-      <div class="flex items-center justify-between gap-3 overflow-x-auto pb-2">
-        <div class="flex-1 min-w-[190px] bg-[var(--background)] border border-emerald-500/40 rounded-xl p-4 transition-all" id="st-1">
-          <div class="flex justify-between items-center text-xs mb-1">
-            <span class="font-bold text-[var(--muted-foreground)]">STAGE 1</span>
-            <span class="text-emerald-400 font-semibold px-2 py-0.5 bg-emerald-500/10 rounded">INGESTED</span>
-          </div>
-          <div class="text-sm font-bold text-[var(--foreground)]">Declarative Intent</div>
-          <div class="text-xs text-[var(--muted-foreground)] mt-0.5">TMF921 SLA Contract</div>
-          <div class="mt-2 text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded inline-block">Latency &le; 1.5ms</div>
+    <!-- ===================================================================== -->
+    <!-- ILLUSTRATIVE WHOLE-FLOW CYBER-PHYSICAL INTERACTIVE DIAGRAM -->
+    <!-- ===================================================================== -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-sm space-y-4">
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🗺️</span>
+          <h2 class="text-base font-bold bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+            Whole Flow Cyber-Physical Architecture &amp; Closed-Loop Stepper
+          </h2>
         </div>
-
-        <div class="text-[var(--muted-foreground)] font-bold">➔</div>
-
-        <div class="flex-1 min-w-[190px] bg-[var(--background)] border border-emerald-500/40 rounded-xl p-4 transition-all" id="st-2">
-          <div class="flex justify-between items-center text-xs mb-1">
-            <span class="font-bold text-[var(--muted-foreground)]">STAGE 2</span>
-            <span class="text-emerald-400 font-semibold px-2 py-0.5 bg-emerald-500/10 rounded">SYNCHRONIZED</span>
-          </div>
-          <div class="text-sm font-bold text-[var(--foreground)]">TFS State Sync</div>
-          <div class="text-xs text-[var(--muted-foreground)] mt-0.5">ITU-T Y.3090 Shadow State</div>
-          <div class="mt-2 text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded inline-block">34 Nodes | MCS 8</div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="px-2.5 py-1 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-mono">
+            Interactive: Click any stage to inspect wire API &amp; models
+          </span>
         </div>
+      </div>
 
-        <div class="text-[var(--muted-foreground)] font-bold">➔</div>
+      <!-- Vector SVG Architecture Flow -->
+      <div class="w-full overflow-x-auto bg-[var(--background)] rounded-xl p-4 border border-[var(--border)]">
+        <svg viewBox="0 0 1140 450" class="w-full h-auto select-none font-sans" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad-cyber" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.08"/>
+            </linearGradient>
+            <linearGradient id="grad-phys" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.12"/>
+              <stop offset="100%" stop-color="#10b981" stop-opacity="0.08"/>
+            </linearGradient>
+            
+            <marker id="arr-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="#00d4ff" />
+            </marker>
+            <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="#c084fc" />
+            </marker>
+            <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="#34d399" />
+            </marker>
+            <marker id="arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="#fbbf24" />
+            </marker>
+          </defs>
 
-        <div class="flex-1 min-w-[190px] bg-[var(--background)] border border-purple-500/40 rounded-xl p-4 shadow-[0_0_12px_rgba(192,132,252,0.2)] transition-all" id="st-3">
-          <div class="flex justify-between items-center text-xs mb-1">
-            <span class="font-bold text-[var(--muted-foreground)]">STAGE 3</span>
-            <span class="text-purple-400 font-semibold px-2 py-0.5 bg-purple-500/10 rounded" id="st3-badge">SIMULATING</span>
+          <!-- CYBER TWIN PLANE ENCLOSURE -->
+          <rect x="20" y="20" width="1100" height="185" rx="16" fill="url(#grad-cyber)" stroke="#c084fc" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="5,5"/>
+          <text x="40" y="46" fill="#c084fc" font-size="12" font-weight="700" letter-spacing="1">CYBER TWIN &amp; CO-SIMULATION PLANE (efid@cersrv-029 &amp; Digital Twin Core)</text>
+
+          <!-- PHYSICAL NETWORK PLANE ENCLOSURE -->
+          <rect x="20" y="245" width="1100" height="185" rx="16" fill="url(#grad-phys)" stroke="#00d4ff" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="5,5"/>
+          <text x="40" y="271" fill="#00d4ff" font-size="12" font-weight="700" letter-spacing="1">PHYSICAL TELECOM NETWORK &amp; SDN CONTROL PLANE (ETSI TeraFlowSDN &amp; Ceragon Hardware)</text>
+
+          <!-- ==================== FLOW CONNECTORS ==================== -->
+          <!-- 1. Intent -> DTI Sandbox -->
+          <path d="M 215 115 L 295 115" stroke="#00d4ff" stroke-width="2.5" class="flow-line" marker-end="url(#arr-cyan)" id="flow-1"/>
+          <!-- 2. DTI -> NS-3 Core -->
+          <path d="M 485 115 L 565 115" stroke="#c084fc" stroke-width="2.5" class="flow-line" marker-end="url(#arr-purple)" id="flow-2"/>
+          <!-- 3. NS-3 Core -> Decision Engine -->
+          <path d="M 755 115 L 835 115" stroke="#fbbf24" stroke-width="2.5" class="flow-line" marker-end="url(#arr-amber)" id="flow-3"/>
+          
+          <!-- 4. Decision Engine -> TFS 2PC (Downward Actuation Bridge) -->
+          <path d="M 930 160 L 930 300" stroke="#34d399" stroke-width="3" class="flow-line" marker-end="url(#arr-green)" id="flow-4"/>
+          <text x="940" y="235" fill="#34d399" font-size="11" font-weight="600">4. 2PC CANDIDATE COMMIT</text>
+
+          <!-- 5. TFS Controller -> Physical Ceragon Hardware -->
+          <path d="M 835 340 L 755 340" stroke="#00d4ff" stroke-width="2.5" class="flow-line-rev" marker-end="url(#arr-cyan)" id="flow-5"/>
+          <!-- 6. Physical Hardware -> 34-Node Mesh -->
+          <path d="M 565 340 L 485 340" stroke="#34d399" stroke-width="2.5" class="flow-line-rev" marker-end="url(#arr-green)" id="flow-6"/>
+          <!-- 7. 34-Node Mesh -> Telemetry Aggregator -->
+          <path d="M 295 340 L 215 340" stroke="#00d4ff" stroke-width="2.5" class="flow-line-rev" marker-end="url(#arr-cyan)" id="flow-7"/>
+
+          <!-- 8. Telemetry Aggregator -> DTI Twin Shadow (Upward Sync Bridge) -->
+          <path d="M 125 300 L 125 210 Q 125 170 190 170 L 390 170 L 390 160" stroke="#00d4ff" stroke-width="2.5" class="flow-line" stroke-dasharray="6,4" marker-end="url(#arr-cyan)" id="flow-8"/>
+          <text x="135" y="235" fill="#00d4ff" font-size="11" font-weight="600">8. TELEMETRY SYNC (RFC 8040)</text>
+
+          <!-- ==================== TOP PLANE NODES ==================== -->
+          <!-- Node 1: Intent Ingest -->
+          <g class="node-box" onclick="inspectFlowStage(1)">
+            <rect x="45" y="70" width="170" height="90" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5"/>
+            <text x="60" y="95" fill="#00d4ff" font-size="11" font-weight="700">1. DECLARATIVE INTENT</text>
+            <text x="60" y="115" fill="#ffffff" font-size="13" font-weight="600">TM Forum TMF921</text>
+            <text x="60" y="133" fill="#7a91a8" font-size="10">SLA: Latency &le; 1.5ms</text>
+            <text x="60" y="147" fill="#34d399" font-size="10" font-family="monospace">● INGESTED</text>
+          </g>
+
+          <!-- Node 2: DTI Sandbox Core -->
+          <g class="node-box" onclick="inspectFlowStage(2)">
+            <rect x="295" y="70" width="190" height="90" rx="12" fill="#0d1420" stroke="#c084fc" stroke-width="1.5" id="node-rect-2"/>
+            <text x="310" y="95" fill="#c084fc" font-size="11" font-weight="700">2. DTI SCENARIO CORE</text>
+            <text x="310" y="115" fill="#ffffff" font-size="13" font-weight="600">IETF NMRG DTI Router</text>
+            <text x="310" y="133" fill="#7a91a8" font-size="10">What-If Perturbations</text>
+            <text x="310" y="147" fill="#00d4ff" font-size="10" font-family="monospace">● SANDBOX READY</text>
+          </g>
+
+          <!-- Node 3: NS-3 Discrete Simulation Core -->
+          <g class="node-box" onclick="inspectFlowStage(3)">
+            <rect x="565" y="70" width="190" height="90" rx="12" fill="#0d1420" stroke="#fbbf24" stroke-width="1.5" id="node-rect-3"/>
+            <text x="580" y="95" fill="#fbbf24" font-size="11" font-weight="700">3. NS-3 DISCRETE CORE</text>
+            <text x="580" y="115" fill="#ffffff" font-size="13" font-weight="600">ns-3.45 (cersrv-029)</text>
+            <text x="580" y="133" fill="#7a91a8" font-size="10">Queue Delay &amp; Buffer Loss</text>
+            <text x="580" y="147" fill="#fbbf24" font-size="10" font-family="monospace" id="svg-ns3-badge">● SIMULATING...</text>
+          </g>
+
+          <!-- Node 4: AI Decision Engine -->
+          <g class="node-box" onclick="inspectFlowStage(4)">
+            <rect x="835" y="70" width="190" height="90" rx="12" fill="#0d1420" stroke="#34d399" stroke-width="1.5" id="node-rect-4"/>
+            <text x="850" y="95" fill="#34d399" font-size="11" font-weight="700">4. AI DECISION ENGINE</text>
+            <text x="850" y="115" fill="#ffffff" font-size="13" font-weight="600">3GPP TS 28.561 Gate</text>
+            <text x="850" y="133" fill="#7a91a8" font-size="10">Pre-Flight Safety (4/4)</text>
+            <text x="850" y="147" fill="#34d399" font-size="10" font-family="monospace" id="svg-de-badge">● PRE-FLIGHT PASS</text>
+          </g>
+
+          <!-- ==================== BOTTOM PLANE NODES ==================== -->
+          <!-- Node 5: TFS Controller -->
+          <g class="node-box" onclick="inspectFlowStage(5)">
+            <rect x="835" y="300" width="190" height="85" rx="12" fill="#0d1420" stroke="#34d399" stroke-width="1.5" id="node-rect-5"/>
+            <text x="850" y="325" fill="#34d399" font-size="11" font-weight="700">5. TFS CONTROLLER</text>
+            <text x="850" y="345" fill="#ffffff" font-size="13" font-weight="600">ETSI TeraFlowSDN (:8088)</text>
+            <text x="850" y="362" fill="#7a91a8" font-size="10">Candidate 2PC Datastore</text>
+            <text x="850" y="375" fill="#34d399" font-size="10" font-family="monospace">● 2PC COMMITTED</text>
+          </g>
+
+          <!-- Node 6: Physical Ceragon Hardware -->
+          <g class="node-box" onclick="inspectFlowStage(6)">
+            <rect x="565" y="300" width="190" height="85" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5" id="node-rect-6"/>
+            <text x="580" y="325" fill="#00d4ff" font-size="11" font-weight="700">6. CERAGON HARDWARE</text>
+            <text x="580" y="345" fill="#ffffff" font-size="13" font-weight="600">Siklu MH-T261 (ctu-96)</text>
+            <text x="580" y="362" fill="#7a91a8" font-size="10">192.168.1.225 (V-Band)</text>
+            <text x="580" y="375" fill="#34d399" font-size="10" font-family="monospace">● RESTCONF 200 OK</text>
+          </g>
+
+          <!-- Node 7: 34-Node O-RAN Transport Mesh -->
+          <g class="node-box" onclick="inspectFlowStage(7)">
+            <rect x="295" y="300" width="190" height="85" rx="12" fill="#0d1420" stroke="#34d399" stroke-width="1.5"/>
+            <text x="310" y="325" fill="#34d399" font-size="11" font-weight="700">7. O-RAN TRANSPORT</text>
+            <text x="310" y="345" fill="#ffffff" font-size="13" font-weight="600">34-Node Optical/MW Mesh</text>
+            <text x="310" y="362" fill="#7a91a8" font-size="10">Context: admin / admin</text>
+            <text x="310" y="375" fill="#00d4ff" font-size="10" font-family="monospace">● TOPOLOGY ACTIVE</text>
+          </g>
+
+          <!-- Node 8: Southbound Telemetry Sync -->
+          <g class="node-box" onclick="inspectFlowStage(8)">
+            <rect x="45" y="300" width="170" height="85" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5"/>
+            <text x="60" y="325" fill="#00d4ff" font-size="11" font-weight="700">8. TELEMETRY SYNC</text>
+            <text x="60" y="345" fill="#ffffff" font-size="13" font-weight="600">ITU-T Y.3090 Ingest</text>
+            <text x="60" y="362" fill="#7a91a8" font-size="10">RFC 8040 Polling Daemon</text>
+            <text x="60" y="375" fill="#34d399" font-size="10" font-family="monospace">● SYNC: 100%</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Interactive Inspector Box -->
+      <div id="inspector-panel" class="bg-[var(--background)] border border-purple-500/30 rounded-xl p-4 transition-all">
+        <div class="flex items-center justify-between border-b border-[var(--border)] pb-2 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-purple-400 font-mono" id="insp-stage">STAGE INSPECTOR: 3. NS-3 Discrete Simulation Core</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono" id="insp-status">STATUS: ONLINE</span>
           </div>
-          <div class="text-sm font-bold text-[var(--foreground)]">NS-3 Co-Simulation</div>
-          <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Discrete-Event Prediction</div>
-          <div class="mt-2 text-xs font-mono text-purple-400 bg-purple-500/10 px-2 py-1 rounded inline-block">Queue Backlog &amp; Loss</div>
+          <span class="text-xs text-[var(--muted-foreground)] font-mono" id="insp-std">IETF NMRG DTI / RFC Co-Sim</span>
         </div>
-
-        <div class="text-[var(--muted-foreground)] font-bold">➔</div>
-
-        <div class="flex-1 min-w-[190px] bg-[var(--background)] border border-[var(--border)] rounded-xl p-4 transition-all" id="st-4">
-          <div class="flex justify-between items-center text-xs mb-1">
-            <span class="font-bold text-[var(--muted-foreground)]">STAGE 4</span>
-            <span class="text-amber-400 font-semibold px-2 py-0.5 bg-amber-500/10 rounded" id="st4-badge">PRE-FLIGHT</span>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div>
+            <span class="text-[var(--muted-foreground)] block">Underlying Host / Runtime:</span>
+            <strong class="font-mono text-cyan-400" id="insp-host">efid@cersrv-029 (/home/efid/ns3-dev/ns3)</strong>
           </div>
-          <div class="text-sm font-bold text-[var(--foreground)]">Decision Engine</div>
-          <div class="text-xs text-[var(--muted-foreground)] mt-0.5">3GPP TS 28.561 Gatekeeper</div>
-          <div class="mt-2 text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-1 rounded inline-block">4/4 Envelopes PASS</div>
-        </div>
-
-        <div class="text-[var(--muted-foreground)] font-bold">➔</div>
-
-        <div class="flex-1 min-w-[190px] bg-[var(--background)] border border-[var(--border)] rounded-xl p-4 transition-all" id="st-5">
-          <div class="flex justify-between items-center text-xs mb-1">
-            <span class="font-bold text-[var(--muted-foreground)]">STAGE 5</span>
-            <span class="text-emerald-400 font-semibold px-2 py-0.5 bg-emerald-500/10 rounded" id="st5-badge">2PC COMMIT</span>
+          <div>
+            <span class="text-[var(--muted-foreground)] block">Mathematical / Physical Models:</span>
+            <strong class="font-mono text-amber-400" id="insp-models">M/M/1/K Queueing, DropTail QueueDisc, Friis FSPL</strong>
           </div>
-          <div class="text-sm font-bold text-[var(--foreground)]">Hardware Actuation</div>
-          <div class="text-xs text-[var(--muted-foreground)] mt-0.5">TFS Candidate &amp; RESTCONF</div>
-          <div class="mt-2 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded inline-block">Device: ctu-96</div>
+          <div>
+            <span class="text-[var(--muted-foreground)] block">Wire Protocol / Action:</span>
+            <strong class="font-mono text-purple-400" id="insp-proto">SSH BatchMode &amp; Co-Simulation Bridge (:9099)</strong>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Main Workspace Grid -->
+    <!-- ===================================================================== -->
+    <!-- WORKSPACE CONTROLS & CYBER-PHYSICAL COMPARISON -->
+    <!-- ===================================================================== -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
       <!-- Left Controls: Scenario & Intent Selector (5 Cols) -->
       <div class="lg:col-span-5 space-y-5">
         
-        <!-- Step 1 Card -->
+        <!-- Step 1 Card: Intent -->
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
@@ -169,7 +308,7 @@
           </div>
         </div>
 
-        <!-- Step 2 Card -->
+        <!-- Step 2 Card: Scenario Domain -->
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
@@ -329,6 +468,85 @@
 
   <script>
     let currentSc = 'traffic_surge';
+
+    const stageDetails = {
+      1: {
+        title: "STAGE 1: Declarative Intent Ingestion",
+        status: "INGESTED",
+        std: "TM Forum TMF921 Intent Management",
+        host: "CER-Intent Flask Server (http://localhost:5000/api/v1/intent)",
+        models: "NLP Intent Parser, Declarative Target Constraints, SLA Validation Matrix",
+        proto: "REST HTTP POST application/json (RFC 8259)"
+      },
+      2: {
+        title: "STAGE 2: DTI Scenario Core & Sandbox",
+        status: "SANDBOX READY",
+        std: "IETF NMRG DTI (draft-paillisse-02) / 3GPP TS 28.561",
+        host: "Digital Twin Server (http://localhost:9100/api/v1/dti/scenarios)",
+        models: "What-If Scenario Sandbox Router, Perturbation Injection Vector",
+        proto: "RESTCONF / DTI JSON Payload Evaluation"
+      },
+      3: {
+        title: "STAGE 3: NS-3 Discrete-Event Simulation Core",
+        status: "SIMULATING",
+        std: "NS-3 Discrete-Event Engine (v3.45) & ITU-R Models",
+        host: "efid@cersrv-029 (/home/efid/ns3-dev/ns3)",
+        models: "M/M/1/K Queueing, DropTail QueueDisc, Friis FSPL, ITU-R P.838 Rain Fade",
+        proto: "SSH BatchMode & Co-Simulation Bridge (:9099)"
+      },
+      4: {
+        title: "STAGE 4: AI Decision Engine & Safety Gatekeeper",
+        status: "PRE-FLIGHT PASS",
+        std: "3GPP TS 28.561 MnS Closed-Loop Gatekeeper",
+        host: "Ceragon Autonomic Controller / Heuristic Solver",
+        models: "4/4 Boundary Envelopes (RF, Thermal, Modulation, Reserve Capacity)",
+        proto: "Pre-Commit Transaction Validator"
+      },
+      5: {
+        title: "STAGE 5: ETSI TeraFlowSDN Controller",
+        status: "2PC COMMITTED",
+        std: "ETSI TeraFlowSDN Release 3 NBI / 2PC Candidate",
+        host: "TeraFlowSDN Microservices (http://localhost:8088)",
+        models: "Context CockroachDB, Device Service, 2-Phase Commit Atomic Engine",
+        proto: "REST NBI / Candidate Datastore Write"
+      },
+      6: {
+        title: "STAGE 6: Physical Ceragon Hardware Actuation",
+        status: "RESTCONF 200 OK",
+        std: "RFC 8040 RESTCONF / Ceragon YANG Schemas",
+        host: "https://192.168.1.225/restconf/ds/ietf-datastores:candidate",
+        models: "Terragraph V-Band Beamforming Phased Array (32 Elements), Hitless ACM",
+        proto: "HTTPS PATCH with Basic Authentication (admin:admin)"
+      },
+      7: {
+        title: "STAGE 7: 34-Node O-RAN Transport Mesh",
+        status: "ACTIVE MESH",
+        std: "O-RAN Transport WG9 / ETSI TeraFlowSDN",
+        host: "Context: admin / Topology: admin",
+        models: "TI-LFA Fast Rerouting, CSPF Multi-Constrained Routing Graph",
+        proto: "CockroachDB Synchronized Topology State"
+      },
+      8: {
+        title: "STAGE 8: Southbound Telemetry Synchronizer",
+        status: "SYNC: 100%",
+        std: "ITU-T Y.3090 Twin Data Plane / RFC 8641 YANG Push",
+        host: "Background Telemetry Daemon (1s Interval)",
+        models: "EWMA Telemetry Filter, RSL/SNR Calibration, Thermal Tracking",
+        proto: "RFC 8040 RESTCONF Operational Datastore Polling"
+      }
+    };
+
+    function inspectFlowStage(id) {
+      const d = stageDetails[id];
+      if (!d) return;
+      document.getElementById('insp-stage').textContent = d.title;
+      document.getElementById('insp-status').textContent = `STATUS: ${d.status}`;
+      document.getElementById('insp-std').textContent = d.std;
+      document.getElementById('insp-host').textContent = d.host;
+      document.getElementById('insp-models').textContent = d.models;
+      document.getElementById('insp-proto').textContent = d.proto;
+      log(`Inspecting Stage ${id}: ${d.title}`, 'text-purple-300 font-bold');
+    }
 
     function onIntentChange() {
       const sel = document.getElementById('sel-intent');
