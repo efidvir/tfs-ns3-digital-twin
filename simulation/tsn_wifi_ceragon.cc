@@ -11,7 +11,10 @@
  *    - Traffic Profiles:
  *      - High Priority TSN Flow: 1ms URLLC Periodic Telemetry (TOS 0xc0, AC_VO)
  *      - Best Effort Flow: Bulk Surveillance Burst (TOS 0x00, AC_BE)
- *    - Output: Formatted JSON with packet loss, delay, jitter, queue depths & WiFi KPIs
+ *    - Instrumentation:
+ *      - FlowMonitor E2E Latency, Jitter, PDR, and Throughput
+ *      - NetAnim XML trace generation (scratch/tsn_wifi_ceragon_anim.xml)
+ *      - High-Resolution Discrete Packet Event Stream (TX, RX, Enqueue, Dequeue, Drop)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -24,13 +27,152 @@
 #include "ns3/mobility-module.h"
 #include "ns3/traffic-control-module.h"
 #include "ns3/flow-monitor-module.h"
+#include "ns3/netanim-module.h"
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("TsnWifiCeragonSim");
+
+struct DiscretePktEvent {
+  double t_sec;
+  std::string event;  // "TX", "RX", "ENQUEUE", "DEQUEUE", "DROP"
+  std::string node;   // "STA0", "STA1", "AP0", "AP1", "C0", "C1", "C2", "C3", "SINK"
+  std::string peer;   // Destination / Next-hop node
+  std::string flow;   // "TSN" or "BE"
+  uint64_t pkt_id;
+  uint32_t size;
+  uint32_t q_depth;
+  int band;           // 0 or 1
+  std::string note;
+};
+
+static std::vector<DiscretePktEvent> g_discreteTrace;
+static uint32_t g_tsnSampleCounter = 0;
+static uint32_t g_beSampleCounter = 0;
+static Ptr<QueueDisc> g_hop1Queue = nullptr;
+
+void TraceTsnTx(Ptr<const Packet> p) {
+  g_tsnSampleCounter++;
+  if ((g_tsnSampleCounter % 6 == 1) && g_discreteTrace.size() < 600) {
+    DiscretePktEvent ev;
+    ev.t_sec = Simulator::Now().GetSeconds();
+    ev.event = "TX";
+    ev.node = "STA0";
+    ev.peer = "AP0";
+    ev.flow = "TSN";
+    ev.pkt_id = p ? p->GetUid() : 0;
+    ev.size = p ? p->GetSize() : 128;
+    ev.q_depth = 0;
+    ev.band = 0;
+    ev.note = "1ms URLLC Micro-Packet Emitted (AC_VO / TOS 0xc0)";
+    g_discreteTrace.push_back(ev);
+  }
+}
+
+void TraceBeTx(Ptr<const Packet> p) {
+  g_beSampleCounter++;
+  if ((g_beSampleCounter % 80 == 1) && g_discreteTrace.size() < 600) {
+    DiscretePktEvent ev;
+    ev.t_sec = Simulator::Now().GetSeconds();
+    ev.event = "TX";
+    ev.node = "STA1";
+    ev.peer = "AP1";
+    ev.flow = "BE";
+    ev.pkt_id = p ? p->GetUid() : 0;
+    ev.size = p ? p->GetSize() : 1400;
+    ev.q_depth = 0;
+    ev.band = 1;
+    ev.note = "Bulk Surveillance Video Burst (AC_BE / TOS 0x00)";
+    g_discreteTrace.push_back(ev);
+  }
+}
+
+void TraceQueueEnqueue(Ptr<const QueueDiscItem> item) {
+  if (g_discreteTrace.size() >= 600) return;
+  uint32_t qDepth = g_hop1Queue ? g_hop1Queue->GetNPackets() : 0;
+  Ptr<const Packet> p = item->GetPacket();
+  uint32_t sz = item->GetSize();
+  bool isTsn = (sz < 300);
+
+  if ((isTsn && (g_tsnSampleCounter % 6 == 1)) || (!isTsn && (qDepth > 20 || g_beSampleCounter % 80 == 1))) {
+    DiscretePktEvent ev;
+    ev.t_sec = Simulator::Now().GetSeconds();
+    ev.event = "ENQUEUE";
+    ev.node = "C0";
+    ev.peer = "C1";
+    ev.flow = isTsn ? "TSN" : "BE";
+    ev.pkt_id = p ? p->GetUid() : 0;
+    ev.size = sz;
+    ev.q_depth = qDepth;
+    ev.band = isTsn ? 0 : 1;
+    ev.note = isTsn ? "Band 0 Priority Enqueue (0-Wait Head)" : "Band 1 Best-Effort Queue Slot Allocated";
+    g_discreteTrace.push_back(ev);
+  }
+}
+
+void TraceQueueDequeue(Ptr<const QueueDiscItem> item) {
+  if (g_discreteTrace.size() >= 600) return;
+  uint32_t qDepth = g_hop1Queue ? g_hop1Queue->GetNPackets() : 0;
+  Ptr<const Packet> p = item->GetPacket();
+  uint32_t sz = item->GetSize();
+  bool isTsn = (sz < 300);
+
+  if ((isTsn && (g_tsnSampleCounter % 6 == 1)) || (!isTsn && g_beSampleCounter % 80 == 1)) {
+    DiscretePktEvent ev;
+    ev.t_sec = Simulator::Now().GetSeconds();
+    ev.event = "DEQUEUE";
+    ev.node = "C0";
+    ev.peer = "C1";
+    ev.flow = isTsn ? "TSN" : "BE";
+    ev.pkt_id = p ? p->GetUid() : 0;
+    ev.size = sz;
+    ev.q_depth = qDepth;
+    ev.band = isTsn ? 0 : 1;
+    ev.note = "Dequeued & Transmitted onto Hop 1 (60 GHz V-Band)";
+    g_discreteTrace.push_back(ev);
+  }
+}
+
+void TraceQueueDrop(Ptr<const QueueDiscItem> item) {
+  DiscretePktEvent ev;
+  ev.t_sec = Simulator::Now().GetSeconds();
+  ev.event = "DROP";
+  ev.node = "C0";
+  ev.peer = "DROPPED";
+  uint32_t sz = item->GetSize();
+  ev.flow = (sz < 300) ? "TSN" : "BE";
+  ev.pkt_id = item->GetPacket() ? item->GetPacket()->GetUid() : 0;
+  ev.size = sz;
+  ev.q_depth = g_hop1Queue ? g_hop1Queue->GetNPackets() : 150;
+  ev.band = (sz < 300) ? 0 : 1;
+  ev.note = "BUFFER OVERFLOW: Tail-Drop at Ceragon-0 Ingress (150/150 pkts full)";
+  g_discreteTrace.push_back(ev);
+}
+
+void TraceSinkRx(Ptr<const Packet> p, const Address& addr) {
+  if (g_discreteTrace.size() >= 600) return;
+  uint32_t sz = p ? p->GetSize() : 0;
+  bool isTsn = (sz < 300);
+
+  if ((isTsn && (g_tsnSampleCounter % 6 == 1)) || (!isTsn && g_beSampleCounter % 80 == 1)) {
+    DiscretePktEvent ev;
+    ev.t_sec = Simulator::Now().GetSeconds();
+    ev.event = "RX";
+    ev.node = "SINK";
+    ev.peer = "SINK";
+    ev.flow = isTsn ? "TSN" : "BE";
+    ev.pkt_id = p ? p->GetUid() : 0;
+    ev.size = sz;
+    ev.q_depth = 0;
+    ev.band = isTsn ? 0 : 1;
+    ev.note = isTsn ? "Industrial TSN Controller Ingest (SLA Target <= 1.5ms)" : "Bulk Surveillance Data Ingest";
+    g_discreteTrace.push_back(ev);
+  }
+}
 
 int main(int argc, char* argv[])
 {
@@ -73,7 +215,6 @@ int main(int argc, char* argv[])
   }
 
   // 1. Create Nodes
-  // WiFi Domain:
   NodeContainer staNodes;
   staNodes.Create(2); // Sta 0: TSN Sender, Sta 1: Best-Effort Sender
 
@@ -179,6 +320,13 @@ int main(int argc, char* argv[])
   QueueDiscContainer qHop1 = tch.Install(hop1Devs);
   QueueDiscContainer qHop2 = tch.Install(hop2Devs);
 
+  if (qHop1.GetN() > 0) {
+    g_hop1Queue = qHop1.Get(0);
+    g_hop1Queue->TraceConnectWithoutContext("Enqueue", MakeCallback(&TraceQueueEnqueue));
+    g_hop1Queue->TraceConnectWithoutContext("Dequeue", MakeCallback(&TraceQueueDequeue));
+    g_hop1Queue->TraceConnectWithoutContext("Drop", MakeCallback(&TraceQueueDrop));
+  }
+
   // 7. IP Addressing
   Ipv4AddressHelper ip;
   ip.SetBase("192.168.10.0", "255.255.255.0");
@@ -250,6 +398,52 @@ int main(int argc, char* argv[])
   ApplicationContainer beApp = beClient.Install(staNodes.Get(1));
   beApp.Start(Seconds(0.3));
   beApp.Stop(Seconds(simTime - 0.1));
+
+  // Connect App Traces
+  if (tsnApp.GetN() > 0) {
+    tsnApp.Get(0)->TraceConnectWithoutContext("Tx", MakeCallback(&TraceTsnTx));
+  }
+  if (beApp.GetN() > 0) {
+    beApp.Get(0)->TraceConnectWithoutContext("Tx", MakeCallback(&TraceBeTx));
+  }
+  if (sinkTsnApp.GetN() > 0) {
+    sinkTsnApp.Get(0)->TraceConnectWithoutContext("Rx", MakeCallback(&TraceSinkRx));
+  }
+  if (sinkBeApp.GetN() > 0) {
+    sinkBeApp.Get(0)->TraceConnectWithoutContext("Rx", MakeCallback(&TraceSinkRx));
+  }
+
+  // NetAnim Animation Interface setup
+  AnimationInterface anim("/tmp/tsn_wifi_ceragon_anim.xml");
+  anim.SetConstantPosition(staNodes.Get(0), 40.0, 40.0);
+  anim.SetConstantPosition(apNodes.Get(0), 160.0, 40.0);
+  anim.SetConstantPosition(staNodes.Get(1), 40.0, 160.0);
+  anim.SetConstantPosition(apNodes.Get(1), 160.0, 160.0);
+  anim.SetConstantPosition(ceragonNodes.Get(0), 320.0, 100.0);
+  anim.SetConstantPosition(ceragonNodes.Get(1), 480.0, 100.0);
+  anim.SetConstantPosition(ceragonNodes.Get(2), 640.0, 100.0);
+  anim.SetConstantPosition(ceragonNodes.Get(3), 800.0, 100.0);
+  anim.SetConstantPosition(sinkNode.Get(0), 940.0, 100.0);
+
+  anim.UpdateNodeDescription(staNodes.Get(0), "TSN-STA0 (Sensor)");
+  anim.UpdateNodeColor(staNodes.Get(0), 52, 211, 153);
+  anim.UpdateNodeDescription(apNodes.Get(0), "TSN-AP0 (AC_VO)");
+  anim.UpdateNodeColor(apNodes.Get(0), 0, 212, 255);
+  anim.UpdateNodeDescription(staNodes.Get(1), "BE-STA1 (Bulk Cam)");
+  anim.UpdateNodeColor(staNodes.Get(1), 251, 191, 36);
+  anim.UpdateNodeDescription(apNodes.Get(1), "BE-AP1 (AC_BE)");
+  anim.UpdateNodeColor(apNodes.Get(1), 251, 191, 36);
+  anim.UpdateNodeDescription(ceragonNodes.Get(0), "Ceragon-0 (ctu-96 Ingress)");
+  anim.UpdateNodeColor(ceragonNodes.Get(0), 0, 212, 255);
+  anim.UpdateNodeDescription(ceragonNodes.Get(1), "Ceragon-1 (60G Peer)");
+  anim.UpdateNodeColor(ceragonNodes.Get(1), 0, 212, 255);
+  anim.UpdateNodeDescription(ceragonNodes.Get(2), "Ceragon-2 (IP-50C Gateway)");
+  anim.UpdateNodeColor(ceragonNodes.Get(2), 192, 132, 252);
+  anim.UpdateNodeDescription(ceragonNodes.Get(3), "Ceragon-3 (IP-50C Terminal)");
+  anim.UpdateNodeColor(ceragonNodes.Get(3), 192, 132, 252);
+  anim.UpdateNodeDescription(sinkNode.Get(0), "TSN-Sink");
+  anim.UpdateNodeColor(sinkNode.Get(0), 52, 211, 153);
+  anim.EnablePacketMetadata(true);
 
   // 9. FlowMonitor Instrumentation
   FlowMonitorHelper flowmon;
@@ -336,6 +530,7 @@ int main(int argc, char* argv[])
   std::cout << "  \"sim_time_sec\": " << simTime << ",\n";
   std::cout << "  \"perturbation\": \"" << perturbation << "\",\n";
   std::cout << "  \"tsn_qos_enabled\": " << (enableTsnQos ? "true" : "false") << ",\n";
+  std::cout << "  \"netanim_trace_file\": \"/tmp/tsn_wifi_ceragon_anim.xml\",\n";
   std::cout << "  \"flows\": {\n";
   std::cout << "    \"tsn_urllc\": {\n";
   std::cout << "      \"flow_type\": \"Periodic 1ms Micro-Packets\",\n";
@@ -424,7 +619,26 @@ int main(int argc, char* argv[])
   std::cout << "    \"status\": \"" << (slaBreached ? "BREACH_PREDICTED" : "SLA_COMPLIANT") << "\",\n";
   std::cout << "    \"tsn_protection_active\": " << (enableTsnQos ? "true" : "false") << ",\n";
   std::cout << "    \"summary\": \"" << (slaBreached ? "URLLC SLA Latency Breach Predicted under current transport state" : "Time-Sensitive Network SLAs Guaranteed via Ceragon Priority Queuing & WiFi EDCA") << "\"\n";
-  std::cout << "  }\n";
+  std::cout << "  },\n";
+
+  // 13. Output Discrete Packet Event Trace for NetAnim Canvas
+  std::cout << "  \"discrete_packet_trace\": [\n";
+  for (size_t i = 0; i < g_discreteTrace.size(); ++i) {
+    const auto& ev = g_discreteTrace[i];
+    std::cout << "    {\n"
+              << "      \"t\": " << std::fixed << std::setprecision(6) << ev.t_sec << ",\n"
+              << "      \"event\": \"" << ev.event << "\",\n"
+              << "      \"node\": \"" << ev.node << "\",\n"
+              << "      \"peer\": \"" << ev.peer << "\",\n"
+              << "      \"flow\": \"" << ev.flow << "\",\n"
+              << "      \"pkt_id\": " << ev.pkt_id << ",\n"
+              << "      \"size\": " << ev.size << ",\n"
+              << "      \"band\": " << ev.band << ",\n"
+              << "      \"q_depth\": " << ev.q_depth << ",\n"
+              << "      \"note\": \"" << ev.note << "\"\n"
+              << "    }" << (i + 1 < g_discreteTrace.size() ? "," : "") << "\n";
+  }
+  std::cout << "  ]\n";
   std::cout << "}\n";
   std::cout << "===TSN_METRICS_END===\n";
 

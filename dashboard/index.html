@@ -6,1907 +6,1259 @@
   <title>Cross-Repo Telecom Digital Twin Operations Dashboard</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
-    @keyframes flowAnim {
-      from { stroke-dashoffset: 40; }
-      to { stroke-dashoffset: 0; }
-    }
     @keyframes pulseGlow {
       0%, 100% { filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); opacity: 1; }
-      50% { filter: drop-shadow(0 0 18px rgba(192, 132, 252, 0.9)); opacity: 0.85; }
+      50% { filter: drop-shadow(0 0 16px rgba(192, 132, 252, 0.9)); opacity: 0.85; }
     }
-    @keyframes activeRing {
-      0% { stroke-dashoffset: 0; }
-      100% { stroke-dashoffset: 24; }
+    @keyframes dropFlash {
+      0% { fill: #ef4444; filter: drop-shadow(0 0 12px #ef4444); }
+      50% { fill: #7f1d1d; }
+      100% { fill: #ef4444; filter: drop-shadow(0 0 6px #ef4444); }
     }
     .flow-line {
-      stroke-dasharray: 8, 4;
-      animation: flowAnim 1.2s linear infinite;
+      stroke-dasharray: 6, 3;
+      animation: dash 1s linear infinite;
     }
-    .flow-line-rev {
-      stroke-dasharray: 8, 4;
-      animation: flowAnim 1.2s linear infinite reverse;
+    @keyframes dash {
+      to { stroke-dashoffset: -18; }
     }
-    .node-box {
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .node-box:hover rect.main-rect {
-      stroke-width: 2.5px;
-      filter: drop-shadow(0 0 10px currentColor);
-    }
-    .node-active rect.main-rect {
-      stroke: #c084fc !important;
-      stroke-width: 3px !important;
-      filter: drop-shadow(0 0 14px #c084fc) !important;
-      animation: pulseGlow 1.5s infinite ease-in-out;
-    }
-    .node-active-ring {
-      stroke-dasharray: 6, 6;
-      animation: activeRing 1s linear infinite;
-    }
-    .node-completed rect.main-rect {
-      stroke: #10b981 !important;
-      stroke-width: 2px !important;
-      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
-    }
-    .node-warning rect.main-rect {
-      stroke: #ef4444 !important;
-      stroke-width: 2.5px !important;
-      filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.6));
+    .drop-anim {
+      animation: dropFlash 0.5s ease-in-out infinite alternate;
     }
     pre code {
       font-family: 'JetBrains Mono', Consolas, monospace;
     }
-    /* Custom scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.3);
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.18);
       border-radius: 3px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.35);
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(6, 182, 212, 0.25));
+      border-color: rgba(168, 85, 247, 0.6);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
     }
   </style>
 </head>
-<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-5 min-h-screen">
+<body class="bg-slate-950 text-slate-100 antialiased p-4 md:p-6 min-h-screen">
 
   <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Header Banner -->
-    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-sm relative overflow-hidden">
-      <div class="absolute -right-10 -top-10 w-56 h-56 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -left-10 -bottom-10 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- Top Navigation & System Status Header -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden backdrop-blur-md">
+      <div class="absolute -right-12 -top-12 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-12 -bottom-12 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
         <div class="flex items-center gap-4">
-          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-500/30 flex items-center justify-center text-3xl shadow-inner">
+          <div class="w-13 h-13 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-500/40 flex items-center justify-center text-3xl shadow-inner">
             🔮
           </div>
           <div>
             <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Telecom Digital Twin — Visual Closed-Loop Operations
+              <h1 class="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+                Telecom Digital Twin — Operations &amp; Simulation Platform
               </h1>
-              <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                Interactive Wire Flow
-              </span>
               <span id="profile-indicator-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                ● Detecting Deployment...
+                ● Detecting...
               </span>
             </div>
-            <p class="text-sm text-[var(--muted-foreground)] mt-1">
-              Visualizing Real-Time End-to-End Execution: Intent (TMF921) → TFS State Sync (:8088) → NS-3 Simulation (efid@cersrv-029) → AI Decision Gatekeeper → 2PC Hardware Actuation (192.168.1.225)
+            <p class="text-xs text-slate-400 mt-0.5">
+              Co-Simulation &amp; Closed-Loop Control: Declarative Intent (TMF921) ↔ ETSI TeraFlowSDN (:8088) ↔ Discrete NS-3.45 (efid@cersrv-029) ↔ Physical Ceragon V-Band (192.168.1.225)
             </p>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <span class="text-xs px-3 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono">
-            3GPP TS 28.561 | ITU-T Y.3090 | IETF DTI
-          </span>
+        <!-- 3 Primary Navigation Tabs -->
+        <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+          <button id="tab-btn-sim" onclick="switchMainTab('simulation')" class="tab-btn active px-3.5 py-2 rounded-lg text-xs font-bold font-mono transition-all flex items-center gap-2">
+            <span>🎮</span> NS-3 Discrete Animator
+          </button>
+          <button id="tab-btn-tfs" onclick="switchMainTab('tfs-internals')" class="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold font-mono transition-all text-slate-400 hover:text-white flex items-center gap-2">
+            <span>⚙️</span> TFS Microservices &amp; Diff
+          </button>
+          <button id="tab-btn-loop" onclick="switchMainTab('closed-loop')" class="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold font-mono transition-all text-slate-400 hover:text-white flex items-center gap-2">
+            <span>🔁</span> 5-Stage Closed Loop
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Live System Connectivity Status Bar -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
+    <!-- System Health Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
         <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
-        <div>
-          <div class="text-xs text-[var(--muted-foreground)]">Intent Orchestrator</div>
-          <div class="text-sm font-semibold text-cyan-400 font-mono">CER-Intent (:5000)</div>
+        <div class="text-xs">
+          <span class="text-slate-400 block text-[10px]">INTENT ENGINE</span>
+          <strong class="text-slate-200 font-mono">TMF921 Port 5000</strong>
         </div>
       </div>
-
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
-        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
-        <div>
-          <div class="text-xs text-[var(--muted-foreground)]">SDN Controller</div>
-          <div class="text-sm font-semibold text-purple-400 font-mono">TFS (:8088 / :8004)</div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+        <span id="tfs-status-dot" class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
+        <div class="text-xs">
+          <span class="text-slate-400 block text-[10px]">TFS SDN CONTROLLER</span>
+          <strong id="tfs-status-txt" class="text-slate-200 font-mono">localhost:8088 (WebUI :8004)</strong>
         </div>
       </div>
-
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
-        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
-        <div>
-          <div class="text-xs text-[var(--muted-foreground)]">Discrete-Event Core</div>
-          <div class="text-sm font-semibold text-emerald-400 font-mono">NS-3 v3.45 (cersrv-029)</div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+        <span id="hw-status-dot" class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
+        <div class="text-xs">
+          <span class="text-slate-400 block text-[10px]">CERAGON TRANSCEIVER</span>
+          <strong id="hw-status-txt" class="text-slate-200 font-mono">192.168.1.225 (ctu-96)</strong>
         </div>
       </div>
-
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3 shadow-sm">
-        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
-        <div>
-          <div class="text-xs text-[var(--muted-foreground)]">Physical Hardware</div>
-          <div class="text-sm font-semibold text-amber-400 font-mono">MH-T261 (192.168.1.225)</div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+        <span id="ns3-status-dot" class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
+        <div class="text-xs">
+          <span class="text-slate-400 block text-[10px]">NS-3 CO-SIMULATION CORE</span>
+          <strong id="ns3-status-txt" class="text-slate-200 font-mono">efid@cersrv-029 (v3.45)</strong>
         </div>
       </div>
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- PLAYBACK CONTROLS & STEPPER BAR -->
-    <!-- ===================================================================== -->
-    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <button id="btn-play-flow" onclick="togglePlayFlow()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:opacity-95 transition-all flex items-center gap-2">
-          <span id="btn-play-icon">▶</span>
-          <span id="btn-play-text">Auto-Play Live Flow</span>
-        </button>
-
-        <div class="flex items-center border border-[var(--border)] rounded-xl bg-[var(--background)] p-1 text-xs">
-          <button onclick="stepPrevStage()" class="px-3 py-1.5 rounded-lg hover:bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all font-mono" title="Previous Stage">
-            ⏮ Prev
-          </button>
-          <button onclick="stepNextStage()" class="px-3 py-1.5 rounded-lg hover:bg-[var(--card)] text-purple-400 hover:text-purple-300 font-bold transition-all font-mono" title="Next Stage">
-            Next ⏭
-          </button>
-          <button onclick="resetFlowBaseline()" class="px-3 py-1.5 rounded-lg hover:bg-[var(--card)] text-[var(--muted-foreground)] hover:text-red-400 transition-all font-mono" title="Reset to Baseline">
-            🔄 Reset
-          </button>
-        </div>
-
-        <div class="hidden sm:flex items-center gap-2 text-xs text-[var(--muted-foreground)] font-mono">
-          <span>Active Step:</span>
-          <span id="active-step-badge" class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold">1 / 8: Intent Ingestion</span>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-[var(--muted-foreground)]">Scenario:</label>
-          <select id="quick-scenario-select" onchange="onScenarioSelectChange(this.value)" class="bg-[var(--background)] border border-[var(--border)] text-xs rounded-xl px-3 py-2 text-[var(--foreground)] outline-none focus:border-purple-500 font-mono">
-            <option value="channel_degradation">🌧️ Channel Degradation (Rain Fade & ACM Collapse)</option>
-            <option value="traffic_surge">📈 Traffic Surge (3.5x Burst & Bufferbloat)</option>
-            <option value="link_failure">✂️ Fiber Link Cut (TI-LFA Fast Reroute)</option>
-            <option value="slice_admission">🧩 Slice Admission (URLLC Strict Priority)</option>
-            <option value="energy_saving_sleep">🍃 Green Telco Energy Saving (Carrier Standby)</option>
-          </select>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-cyan-400 font-bold flex items-center gap-1"><span>🎯</span> Resolution:</label>
-          <select id="quick-resolution-select" onchange="onResolutionSelectChange(this.value)" class="bg-[var(--background)] border border-cyan-500/40 text-xs rounded-xl px-3 py-2 text-cyan-300 outline-none focus:border-cyan-400 font-mono">
-            <option value="auto">⚡ Auto-Governed (By Scenario Goal)</option>
-            <option value="macro_topology">Tier 1: Macro-Topology (Fast Reroute)</option>
-            <option value="queue_dynamics">Tier 2: Queue Dynamics (Bufferbloat)</option>
-            <option value="physical_rf">Tier 3: Physical RF Wireless (Rain / ACM)</option>
-            <option value="urllc_micro">Tier 4: URLLC Micro-Packet (SLA PDB)</option>
-            <option value="energy_macro">Tier 5: Green Energy Macro (Carrier Sleep)</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===================================================================== -->
-    <!-- ILLUSTRATIVE WHOLE-FLOW CYBER-PHYSICAL INTERACTIVE DIAGRAM -->
-    <!-- ===================================================================== -->
-    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-sm space-y-4">
-      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
-        <div class="flex items-center gap-2.5">
-          <span class="text-xl">🗺️</span>
-          <h2 class="text-base font-bold bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-            Whole Flow Cyber-Physical Architecture &amp; Live Wire Tracer
-          </h2>
-        </div>
-        <div class="flex items-center gap-2 text-xs">
-          <span class="px-2.5 py-1 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-mono">
-            Interactive: Click any stage to inspect real reads/writes
-          </span>
-        </div>
-      </div>
-
-      <!-- Vector SVG Architecture Flow -->
-      <div class="w-full overflow-x-auto bg-[var(--background)] rounded-xl p-4 border border-[var(--border)] relative">
-        <svg viewBox="0 0 1140 450" class="w-full h-auto select-none font-sans" xmlns="http://www.w3.org/2000/svg" id="svg-flow">
-          <defs>
-            <linearGradient id="grad-cyber" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.18"/>
-              <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.08"/>
-            </linearGradient>
-            <linearGradient id="grad-phys" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.12"/>
-              <stop offset="100%" stop-color="#10b981" stop-opacity="0.08"/>
-            </linearGradient>
-            
-            <marker id="arr-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 0 1 L 9 5 L 0 9 z" fill="#00d4ff" />
-            </marker>
-            <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 0 1 L 9 5 L 0 9 z" fill="#c084fc" />
-            </marker>
-            <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 0 1 L 9 5 L 0 9 z" fill="#34d399" />
-            </marker>
-            <marker id="arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 0 1 L 9 5 L 0 9 z" fill="#fbbf24" />
-            </marker>
-          </defs>
-
-          <!-- CYBER TWIN PLANE ENCLOSURE -->
-          <rect x="20" y="20" width="1100" height="185" rx="16" fill="url(#grad-cyber)" stroke="#c084fc" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="5,5"/>
-          <text x="40" y="46" fill="#c084fc" font-size="12" font-weight="700" letter-spacing="1">CYBER TWIN &amp; CO-SIMULATION PLANE (efid@cersrv-029 &amp; Digital Twin Core)</text>
-
-          <!-- PHYSICAL NETWORK PLANE ENCLOSURE -->
-          <rect x="20" y="245" width="1100" height="185" rx="16" fill="url(#grad-phys)" stroke="#00d4ff" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="5,5"/>
-          <text x="40" y="271" fill="#00d4ff" font-size="12" font-weight="700" letter-spacing="1">PHYSICAL TELECOM NETWORK &amp; SDN CONTROL PLANE (ETSI TeraFlowSDN &amp; Ceragon Hardware)</text>
-
-          <!-- ==================== FLOW CONNECTORS ==================== -->
-          <!-- 1. Intent -> DTI Sandbox -->
-          <path d="M 215 115 L 295 115" stroke="#00d4ff" stroke-width="2.5" class="flow-line" marker-end="url(#arr-cyan)" id="flow-path-1"/>
-          <!-- 2. DTI -> NS-3 Core -->
-          <path d="M 485 115 L 565 115" stroke="#c084fc" stroke-width="2.5" class="flow-line" marker-end="url(#arr-purple)" id="flow-path-2"/>
-          <!-- 3. NS-3 Core -> Decision Engine -->
-          <path d="M 755 115 L 835 115" stroke="#fbbf24" stroke-width="2.5" class="flow-line" marker-end="url(#arr-amber)" id="flow-path-3"/>
-          
-          <!-- 4. Decision Engine -> TFS 2PC (Downward Actuation Bridge) -->
-          <path d="M 930 160 L 930 300" stroke="#34d399" stroke-width="3" class="flow-line" marker-end="url(#arr-green)" id="flow-path-4"/>
-          <text x="940" y="235" fill="#34d399" font-size="11" font-weight="600">4. 2PC CANDIDATE COMMIT</text>
-
-          <!-- 5. TFS Controller -> Physical Ceragon Hardware -->
-          <path d="M 835 340 L 755 340" stroke="#00d4ff" stroke-width="2.5" class="flow-line-rev" marker-end="url(#arr-cyan)" id="flow-path-5"/>
-          <!-- 6. Physical Hardware -> 34-Node Mesh -->
-          <path d="M 565 340 L 485 340" stroke="#34d399" stroke-width="2.5" class="flow-line-rev" marker-end="url(#arr-green)" id="flow-path-6"/>
-          <!-- 7. 34-Node Mesh -> Telemetry Aggregator -->
-          <path d="M 295 340 L 215 340" stroke="#00d4ff" stroke-width="2.5" class="flow-line-rev" marker-end="url(#arr-cyan)" id="flow-path-7"/>
-
-          <!-- 8. Telemetry Aggregator -> DTI Twin Shadow (Upward Sync Bridge) -->
-          <path d="M 125 300 L 125 210 Q 125 170 190 170 L 390 170 L 390 160" stroke="#00d4ff" stroke-width="2.5" class="flow-line" stroke-dasharray="6,4" marker-end="url(#arr-cyan)" id="flow-path-8"/>
-          <text x="135" y="235" fill="#00d4ff" font-size="11" font-weight="600">8. TELEMETRY SYNC (RFC 8040)</text>
-
-          <!-- ==================== ANIMATED TRAVELLING PARTICLE ==================== -->
-          <circle id="flow-particle" cx="130" cy="115" r="7" fill="#c084fc" filter="drop-shadow(0 0 8px #c084fc)" class="transition-all duration-700 ease-out pointer-events-none opacity-0"/>
-
-          <!-- ==================== TOP PLANE NODES ==================== -->
-          <!-- Node 1: Intent Ingest -->
-          <g class="node-box" id="node-grp-1" onclick="inspectFlowStage(1)">
-            <rect x="45" y="70" width="170" height="90" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5" class="main-rect" id="rect-node-1"/>
-            <text x="60" y="95" fill="#00d4ff" font-size="11" font-weight="700">1. DECLARATIVE INTENT</text>
-            <text x="60" y="115" fill="#ffffff" font-size="13" font-weight="600">TM Forum TMF921</text>
-            <text x="60" y="133" fill="#7a91a8" font-size="10" id="sub-node-1">SLA: Latency &le; 1.5ms</text>
-            <text x="60" y="147" fill="#34d399" font-size="10" font-family="monospace" id="badge-node-1">● INGESTED</text>
-            <!-- Operation type pill -->
-            <rect x="140" y="74" width="68" height="16" rx="4" fill="#00d4ff" fill-opacity="0.15"/>
-            <text x="145" y="86" fill="#00d4ff" font-size="8.5" font-family="monospace" font-weight="bold">WRITE:POST</text>
-          </g>
-
-          <!-- Node 2: DTI Sandbox Core -->
-          <g class="node-box" id="node-grp-2" onclick="inspectFlowStage(2)">
-            <rect x="295" y="70" width="190" height="90" rx="12" fill="#0d1420" stroke="#c084fc" stroke-width="1.5" class="main-rect" id="rect-node-2"/>
-            <text x="310" y="95" fill="#c084fc" font-size="11" font-weight="700">2. DTI SCENARIO CORE</text>
-            <text x="310" y="115" fill="#ffffff" font-size="13" font-weight="600">IETF NMRG DTI Router</text>
-            <text x="310" y="133" fill="#7a91a8" font-size="10" id="sub-node-2">What-If Perturbations</text>
-            <text x="310" y="147" fill="#00d4ff" font-size="10" font-family="monospace" id="badge-node-2">● SANDBOX READY</text>
-            <!-- Operation type pill -->
-            <rect x="415" y="74" width="62" height="16" rx="4" fill="#c084fc" fill-opacity="0.15"/>
-            <text x="420" y="86" fill="#c084fc" font-size="8.5" font-family="monospace" font-weight="bold">READ:SYNC</text>
-          </g>
-
-          <!-- Node 3: NS-3 Discrete Simulation Core -->
-          <g class="node-box" id="node-grp-3" onclick="inspectFlowStage(3)">
-            <rect x="565" y="70" width="190" height="90" rx="12" fill="#0d1420" stroke="#fbbf24" stroke-width="1.5" class="main-rect" id="rect-node-3"/>
-            <text x="580" y="95" fill="#fbbf24" font-size="11" font-weight="700">3. NS-3 DISCRETE CORE</text>
-            <text x="580" y="115" fill="#ffffff" font-size="13" font-weight="600">ns-3.45 (cersrv-029)</text>
-            <text x="580" y="133" fill="#7a91a8" font-size="10" id="sub-node-3">Queue Delay &amp; Buffer Loss</text>
-            <text x="580" y="147" fill="#fbbf24" font-size="10" font-family="monospace" id="badge-node-3">● SIMULATING...</text>
-            <!-- Operation type pill -->
-            <rect x="675" y="74" width="72" height="16" rx="4" fill="#fbbf24" fill-opacity="0.15"/>
-            <text x="680" y="86" fill="#fbbf24" font-size="8.5" font-family="monospace" font-weight="bold">EXEC:SSH</text>
-          </g>
-
-          <!-- Node 4: AI Decision Engine -->
-          <g class="node-box" id="node-grp-4" onclick="inspectFlowStage(4)">
-            <rect x="835" y="70" width="190" height="90" rx="12" fill="#0d1420" stroke="#34d399" stroke-width="1.5" class="main-rect" id="rect-node-4"/>
-            <text x="850" y="95" fill="#34d399" font-size="11" font-weight="700">4. AI DECISION ENGINE</text>
-            <text x="850" y="115" fill="#ffffff" font-size="13" font-weight="600">3GPP TS 28.561 Gate</text>
-            <text x="850" y="133" fill="#7a91a8" font-size="10" id="sub-node-4">Pre-Flight Safety (4/4)</text>
-            <text x="850" y="147" fill="#34d399" font-size="10" font-family="monospace" id="badge-node-4">● PRE-FLIGHT PASS</text>
-            <!-- Operation type pill -->
-            <rect x="945" y="74" width="72" height="16" rx="4" fill="#34d399" fill-opacity="0.15"/>
-            <text x="950" y="86" fill="#34d399" font-size="8.5" font-family="monospace" font-weight="bold">AUDIT:SOLVE</text>
-          </g>
-
-          <!-- ==================== BOTTOM PLANE NODES ==================== -->
-          <!-- Node 5: TFS Controller -->
-          <g class="node-box" id="node-grp-5" onclick="inspectFlowStage(5)">
-            <rect x="835" y="300" width="190" height="85" rx="12" fill="#0d1420" stroke="#34d399" stroke-width="1.5" class="main-rect" id="rect-node-5"/>
-            <text x="850" y="325" fill="#34d399" font-size="11" font-weight="700">5. TFS CONTROLLER</text>
-            <text x="850" y="345" fill="#ffffff" font-size="13" font-weight="600">ETSI TeraFlowSDN (:8088)</text>
-            <text x="850" y="362" fill="#7a91a8" font-size="10" id="sub-node-5">Candidate 2PC Datastore</text>
-            <text x="850" y="375" fill="#34d399" font-size="10" font-family="monospace" id="badge-node-5">● 2PC COMMITTED</text>
-            <!-- Operation type pill -->
-            <rect x="945" y="304" width="72" height="16" rx="4" fill="#34d399" fill-opacity="0.15"/>
-            <text x="950" y="316" fill="#34d399" font-size="8.5" font-family="monospace" font-weight="bold">2PC:WRITE</text>
-          </g>
-
-          <!-- Node 6: Physical Ceragon Hardware -->
-          <g class="node-box" id="node-grp-6" onclick="inspectFlowStage(6)">
-            <rect x="565" y="300" width="190" height="85" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5" class="main-rect" id="rect-node-6"/>
-            <text x="580" y="325" fill="#00d4ff" font-size="11" font-weight="700">6. CERAGON HARDWARE</text>
-            <text x="580" y="345" fill="#ffffff" font-size="13" font-weight="600">Siklu MH-T261 (ctu-96)</text>
-            <text x="580" y="362" fill="#7a91a8" font-size="10" id="sub-node-6">192.168.1.225 (V-Band)</text>
-            <text x="580" y="375" fill="#34d399" font-size="10" font-family="monospace" id="badge-node-6">● RESTCONF 200 OK</text>
-            <!-- Operation type pill -->
-            <rect x="670" y="304" width="76" height="16" rx="4" fill="#00d4ff" fill-opacity="0.15"/>
-            <text x="675" y="316" fill="#00d4ff" font-size="8.5" font-family="monospace" font-weight="bold">RESTCONF:PATCH</text>
-          </g>
-
-          <!-- Node 7: 34-Node O-RAN Transport Mesh -->
-          <g class="node-box" id="node-grp-7" onclick="inspectFlowStage(7)">
-            <rect x="295" y="300" width="190" height="85" rx="12" fill="#0d1420" stroke="#34d399" stroke-width="1.5" class="main-rect" id="rect-node-7"/>
-            <text x="310" y="325" fill="#34d399" font-size="11" font-weight="700">7. O-RAN TRANSPORT</text>
-            <text x="310" y="345" fill="#ffffff" font-size="13" font-weight="600">34-Node Optical/MW Mesh</text>
-            <text x="310" y="362" fill="#7a91a8" font-size="10" id="sub-node-7">Context: admin / admin</text>
-            <text x="310" y="375" fill="#00d4ff" font-size="10" font-family="monospace" id="badge-node-7">● TOPOLOGY ACTIVE</text>
-            <!-- Operation type pill -->
-            <rect x="410" y="304" width="68" height="16" rx="4" fill="#34d399" fill-opacity="0.15"/>
-            <text x="415" y="316" fill="#34d399" font-size="8.5" font-family="monospace" font-weight="bold">TI-LFA:CSPF</text>
-          </g>
-
-          <!-- Node 8: Southbound Telemetry Sync -->
-          <g class="node-box" id="node-grp-8" onclick="inspectFlowStage(8)">
-            <rect x="45" y="300" width="170" height="85" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5" class="main-rect" id="rect-node-8"/>
-            <text x="60" y="325" fill="#00d4ff" font-size="11" font-weight="700">8. TELEMETRY SYNC</text>
-            <text x="60" y="345" fill="#ffffff" font-size="13" font-weight="600">ITU-T Y.3090 Ingest</text>
-            <text x="60" y="362" fill="#7a91a8" font-size="10" id="sub-node-8">RFC 8040 Polling Daemon</text>
-            <text x="60" y="375" fill="#34d399" font-size="10" font-family="monospace" id="badge-node-8">● SYNC: 100%</text>
-            <!-- Operation type pill -->
-            <rect x="145" y="304" width="62" height="16" rx="4" fill="#00d4ff" fill-opacity="0.15"/>
-            <text x="150" y="316" fill="#00d4ff" font-size="8.5" font-family="monospace" font-weight="bold">READ:POLL</text>
-          </g>
-        </svg>
-      </div>
-
-      <!-- ===================================================================== -->
-      <!-- DEDICATED LIVE WIRE READ / WRITE INSPECTOR PANEL -->
-      <!-- ===================================================================== -->
-      <div id="inspector-panel" class="bg-[var(--background)] border border-purple-500/40 rounded-xl p-5 space-y-4 transition-all shadow-md">
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 1: NS-3 DISCRETE-EVENT SIMULATION ANIMATOR (NETANIM-STYLE PLAYER) -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-simulation" class="space-y-5">
+      
+      <!-- Simulation Control & Scrubber Toolbar -->
+      <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl p-5 shadow-lg space-y-4">
         
-        <!-- Inspector Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--border)] pb-3 gap-2">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div class="flex items-center gap-3">
-            <span class="text-xs px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 font-bold font-mono" id="insp-stage-pill">STAGE 1</span>
-            <h3 class="text-sm font-bold text-[var(--foreground)] font-mono" id="insp-stage">STAGE 1: Declarative Intent Ingestion</h3>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-[11px] px-2.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-mono border border-cyan-500/20" id="insp-op-type">WRITE: REST POST</span>
-            <span class="text-[11px] px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono" id="insp-status">STATUS: INGESTED</span>
-          </div>
-        </div>
-
-        <!-- Metadata row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs bg-[var(--card)] p-3 rounded-lg border border-[var(--border)]">
-          <div>
-            <span class="text-[var(--muted-foreground)] block">Target Endpoint / Host:</span>
-            <strong class="font-mono text-cyan-400 text-[11px]" id="insp-host">http://localhost:5000/api/v1/intent</strong>
-          </div>
-          <div>
-            <span class="text-[var(--muted-foreground)] block">Governing Telecom Standard:</span>
-            <strong class="font-mono text-purple-400 text-[11px]" id="insp-std">TM Forum TMF921 Intent Management</strong>
-          </div>
-          <div>
-            <span class="text-[var(--muted-foreground)] block">Underlying Models / Math:</span>
-            <strong class="font-mono text-amber-400 text-[11px]" id="insp-models">NLP Intent Parser, SLA Bounds Matrix</strong>
-          </div>
-        </div>
-
-        <!-- Wire Read / Write Split View -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <!-- TX Request / Written -->
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-bold text-cyan-400 font-mono flex items-center gap-1.5">
-                <span>📤</span> Outbound Request (Sent / Written)
-              </span>
-              <span class="text-[10px] text-[var(--muted-foreground)] font-mono" id="insp-tx-meta">application/json</span>
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-xl">
+              🎮
             </div>
-            <pre class="bg-black/90 p-3 rounded-xl border border-cyan-500/20 text-[11px] text-cyan-300 overflow-x-auto h-44 font-mono" id="insp-tx-code"><code>{
-  "intent_type": "URLLC_LATENCY_ASSURANCE",
-  "sla_profile": "MISSION_CRITICAL_5G",
-  "target_device": "Ceragon-MH-T261-ctu-96 (192.168.1.225)",
-  "bounds": {
-    "max_latency_ms": 1.5,
-    "min_availability_pct": 99.999,
-    "max_jitter_ms": 0.2
-  },
-  "condition": "Adverse physical channel / traffic congestion"
-}</code></pre>
-          </div>
-
-          <!-- RX Response / Read -->
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-bold text-emerald-400 font-mono flex items-center gap-1.5">
-                <span>📥</span> Inbound Response (Read / State)
-              </span>
-              <span class="text-[10px] text-[var(--muted-foreground)] font-mono" id="insp-rx-meta">HTTP 200 OK</span>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-white font-mono">
+                  NS-3 Discrete-Event Network Animator (NetAnim Interactive)
+                </h2>
+                <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  Microsecond Timeline
+                </span>
+              </div>
+              <p class="text-xs text-slate-400">
+                Visualizing exact discrete packet transmissions, queue buffer allocations, head-of-line servicing, and tail drops.
+              </p>
             </div>
-            <pre class="bg-black/90 p-3 rounded-xl border border-emerald-500/20 text-[11px] text-emerald-300 overflow-x-auto h-44 font-mono" id="insp-rx-code"><code>{
-  "status": "INGESTED",
-  "intent_id": "INT-DT-20260927-URLLC-01",
-  "compliance_target": "< 1.50 ms",
-  "assigned_slice": "slice-uran-6g",
-  "priority": "PREEMPTIVE_TIER_1"
-}</code></pre>
           </div>
-        </div>
 
-        <!-- Human Understanding Digest Box -->
-        <div class="bg-purple-950/20 border border-purple-500/30 rounded-xl p-3 flex items-start gap-3">
-          <span class="text-xl">💡</span>
-          <div>
-            <div class="text-xs font-bold text-purple-300">Human Understanding Digest</div>
-            <p class="text-xs text-[var(--foreground)] mt-0.5 leading-relaxed" id="insp-digest">
-              The operator declared a business goal via TMF921: maintain URLLC latency strictly under 1.50 ms and 99.999% availability during network stress. The Intent Engine synthesized this into formal constraints and initiated the digital twin co-simulation loop.
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- ===================================================================== -->
-    <!-- TIME-SENSITIVE NETWORK (TSN) & MULTI-HOP MICROWAVE CO-SIMULATION PANEL -->
-    <!-- ===================================================================== -->
-    <div id="tsn-section" class="bg-[var(--card)] border border-cyan-500/40 rounded-2xl p-6 shadow-lg space-y-5 relative overflow-hidden">
-      <div class="absolute -right-16 -top-16 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <!-- Section Header -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-[var(--border)] pb-4 gap-3 relative z-10">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 flex items-center justify-center text-2xl shadow-inner">
-            ⏱️
-          </div>
-          <div>
-            <div class="flex items-center gap-2.5">
-              <h2 class="text-lg font-bold bg-gradient-to-r from-cyan-400 via-emerald-400 to-purple-400 bg-clip-text text-transparent">
-                Time-Sensitive Network (TSN) &amp; Multi-Hop Microwave Co-Simulation
-              </h2>
-              <span class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                IEEE 802.1Qbv / EDCA QoS
-              </span>
-            </div>
-            <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
-              Heterogeneous Transport: 2x WiFi 6 APs (EDCA Multi-TOS) + 4x Ceragon Nodes (2 Microwave Hops) + 10G Ethernet + Industrial TSN Sink
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <span id="tsn-remote-badge" class="px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 font-mono text-xs border border-emerald-500/30 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            NS-3 Core: efid@cersrv-029 (/home/efid/ns3-dev)
-          </span>
-        </div>
-      </div>
-
-      <!-- TSN Interactive Control Bar -->
-      <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-3">
-          <button id="btn-run-tsn-sim" onclick="executeTsnSimulation()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-emerald-500 to-teal-500 text-slate-950 font-bold text-xs shadow-[0_0_16px_rgba(0,212,255,0.4)] hover:opacity-95 transition-all flex items-center gap-2 cursor-pointer">
-            <span id="tsn-btn-icon">🚀</span>
-            <span id="tsn-btn-text">Execute Real NS-3 TSN Simulation</span>
-          </button>
-
-          <div class="flex items-center gap-2">
-            <label class="text-xs text-[var(--muted-foreground)] font-mono">Perturbation:</label>
-            <select id="tsn-perturbation-select" class="bg-[var(--card)] border border-[var(--border)] text-xs rounded-xl px-3 py-2 text-cyan-300 outline-none focus:border-cyan-400 font-mono">
+          <!-- Simulation Triggers & Scenario Select -->
+          <div class="flex flex-wrap items-center gap-2.5">
+            <select id="sim-scenario-select" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-cyan-300 font-mono outline-none">
               <option value="none">🟢 Baseline Normal (1 Gbps Hop 1, Clear Weather)</option>
               <option value="traffic_surge" selected>📈 Traffic Surge (3.5x Bulk Burst &amp; Congestion)</option>
               <option value="rain_degradation">🌧️ Rain Attenuation (ACM Collapse: 1Gbps &rarr; 100Mbps)</option>
               <option value="wifi_interference">📡 Severe WiFi Airtime Contention</option>
             </select>
-          </div>
 
-          <div class="flex items-center gap-2">
-            <label class="text-xs text-[var(--muted-foreground)] font-mono">QoS Discipline:</label>
-            <select id="tsn-qos-select" class="bg-[var(--card)] border border-[var(--border)] text-xs rounded-xl px-3 py-2 text-emerald-300 outline-none focus:border-emerald-400 font-mono">
-              <option value="true" selected>🛡️ TSN QoS Active (PfifoFast Strict Priority Band 0)</option>
-              <option value="false">⚠️ QoS Disabled (FIFO Queue &mdash; Bufferbloat SLA Breach)</option>
+            <select id="sim-qos-select" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-emerald-300 font-mono outline-none">
+              <option value="true">🛡️ TSN QoS Active (PfifoFast Priority Band 0)</option>
+              <option value="false" selected>⚠️ QoS Disabled (FIFO Queue &mdash; Bufferbloat Breach)</option>
             </select>
+
+            <button id="btn-trigger-real-sim" onclick="runRealDiscreteSim()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold text-xs shadow-[0_0_12px_rgba(0,212,255,0.4)] hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer">
+              <span id="btn-sim-icon">🚀</span>
+              <span id="btn-sim-text">Run Real NS-3 Simulation</span>
+            </button>
           </div>
         </div>
 
-        <div class="flex items-center gap-3 text-xs font-mono text-[var(--muted-foreground)]">
-          <span>Sim Duration:</span>
-          <span class="text-cyan-400 font-bold">2.5s Discrete Time</span>
+        <!-- NetAnim VCR Controller Bar -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          <!-- Playback Controls -->
+          <div class="flex items-center gap-2">
+            <button id="vcr-play-btn" onclick="toggleSimPlayback()" class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold flex items-center justify-center hover:opacity-90 shadow-md">
+              <span id="vcr-play-icon">▶</span>
+            </button>
+            <button onclick="stepSimTime(-0.020)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300" title="Step Back 20ms">
+              ⏮ -20ms
+            </button>
+            <button onclick="stepSimTime(+0.020)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300" title="Step Forward 20ms">
+              ⏭ +20ms
+            </button>
+            <button onclick="resetSimTime()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300" title="Reset Timeline">
+              ⏹ Reset
+            </button>
+
+            <!-- Speed Multipliers -->
+            <div class="flex items-center gap-1 ml-2 border-l border-slate-800 pl-3">
+              <span class="text-[10px] text-slate-500 font-mono">Speed:</span>
+              <button onclick="setSimSpeed(0.2, this)" class="speed-btn px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">0.2x</button>
+              <button onclick="setSimSpeed(0.5, this)" class="speed-btn px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">0.5x</button>
+              <button onclick="setSimSpeed(1.0, this)" class="speed-btn px-2 py-0.5 rounded text-[10px] font-mono bg-purple-600 text-white font-bold">1x</button>
+              <button onclick="setSimSpeed(2.0, this)" class="speed-btn px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">2x</button>
+            </div>
+          </div>
+
+          <!-- Scrubber Slider & Simulation Time Clock -->
+          <div class="flex items-center gap-4 flex-1 max-w-xl">
+            <input type="range" id="sim-scrubber" min="0" max="2.5" step="0.001" value="0.0" oninput="onScrubberInput(parseFloat(this.value))" class="w-full accent-cyan-400 cursor-pointer">
+            <div class="min-w-28 text-right">
+              <span class="text-[10px] text-slate-500 font-mono block">SIM TIME (t)</span>
+              <span id="sim-clock-display" class="text-sm font-bold font-mono text-cyan-300">0.000000 s</span>
+            </div>
+          </div>
+
         </div>
+
       </div>
 
-      <!-- Interactive SVG Network Topology & Animated Packet Flow Canvas -->
-      <div class="bg-[var(--background)] rounded-xl p-4 border border-[var(--border)] relative overflow-x-auto">
-        <div class="flex items-center justify-between text-xs font-mono text-[var(--muted-foreground)] mb-2 px-1">
+      <!-- NetAnim Discrete Visual Canvas -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-x-auto">
+        <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-3">
           <span class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00d4ff]"></span>
-            <span>Heterogeneous End-to-End Topology Path (Edge WiFi &rarr; Microwave Backhaul &rarr; Core TSN Sink)</span>
+            <span>Heterogeneous Multi-Hop Topology &mdash; Physical Link State &amp; Queue Buffers</span>
           </span>
           <div class="flex items-center gap-4 text-[11px]">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span> High-Priority TSN 1ms Micro-Packets (TOS 0xc0 / AC_VO)</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Best-Effort Bulk Surge (TOS 0x00 / AC_BE)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span> TSN Micro-Packet (128B / AC_VO)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Bulk Video Frame (1400B / AC_BE)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Dropped Packet (Buffer Overflow)</span>
           </div>
         </div>
 
-        <svg viewBox="0 0 1100 280" class="w-full h-auto select-none font-sans" xmlns="http://www.w3.org/2000/svg" id="svg-tsn-topo">
+        <svg viewBox="0 0 1140 320" class="w-full h-auto select-none font-sans" xmlns="http://www.w3.org/2000/svg" id="svg-netanim">
           <defs>
-            <linearGradient id="grad-mw-link1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="link-hop1-grad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.8"/>
               <stop offset="100%" stop-color="#34d399" stop-opacity="0.8"/>
             </linearGradient>
-            <linearGradient id="grad-mw-link2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="link-hop2-grad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stop-color="#c084fc" stop-opacity="0.8"/>
               <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.8"/>
             </linearGradient>
-
-            <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
           </defs>
 
-          <!-- TOPOLOGY LINKS -->
-          <!-- Sta 0 -> AP 0 (WiFi 5GHz) -->
-          <line x1="85" y1="65" x2="195" y2="65" stroke="#34d399" stroke-width="2" stroke-dasharray="4,4" class="flow-line"/>
-          <!-- Sta 1 -> AP 1 (WiFi 5GHz) -->
-          <line x1="85" y1="215" x2="195" y2="215" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4,4" class="flow-line"/>
+          <!-- ── PHYSICAL LINKS ── -->
+          <!-- Sta0 -> AP0 -->
+          <line x1="90" y1="70" x2="200" y2="70" stroke="#34d399" stroke-width="2.5" stroke-dasharray="4,4"/>
+          <text x="145" y="55" fill="#34d399" font-size="8.5" font-family="monospace" text-anchor="middle">WiFi 5GHz (AC_VO)</text>
 
-          <!-- AP 0 -> Ceragon Node 0 (Gigabit Ethernet) -->
-          <path d="M 315 65 L 370 65 Q 400 65 400 100 L 400 115" stroke="#00d4ff" stroke-width="2.5" class="flow-line"/>
-          <!-- AP 1 -> Ceragon Node 0 (Gigabit Ethernet) -->
-          <path d="M 315 215 L 370 215 Q 400 215 400 180 L 400 165" stroke="#fbbf24" stroke-width="2.5" class="flow-line"/>
+          <!-- Sta1 -> AP1 -->
+          <line x1="90" y1="240" x2="200" y2="240" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="4,4"/>
+          <text x="145" y="225" fill="#fbbf24" font-size="8.5" font-family="monospace" text-anchor="middle">WiFi 5GHz (AC_BE)</text>
 
-          <!-- HOP 1: Ceragon Node 0 <-> Ceragon Node 1 (60 GHz Millimeter-Wave Link) -->
-          <path d="M 460 140 L 565 140" stroke="url(#grad-mw-link1)" stroke-width="5" id="tsn-link-hop1" stroke-linecap="round"/>
-          <text x="512" y="125" fill="#00d4ff" font-size="10" font-weight="bold" font-family="monospace" text-anchor="middle" id="tsn-link-hop1-txt">60 GHz V-Band (1 Gbps)</text>
+          <!-- AP0 -> C0 -->
+          <path d="M 310 70 L 365 70 Q 390 70 390 100 L 390 125" stroke="#00d4ff" stroke-width="2" fill="none"/>
+          <text x="350" y="62" fill="#00d4ff" font-size="8" font-family="monospace">10G ETH</text>
 
-          <!-- BACKBONE: Ceragon Node 1 -> Ceragon Node 2 (10G Ethernet Interconnect) -->
-          <line x1="685" y1="140" x2="725" y2="140" stroke="#a78bfa" stroke-width="3" stroke-dasharray="6,3" class="flow-line"/>
-          <text x="705" y="125" fill="#a78bfa" font-size="9" font-family="monospace" text-anchor="middle">10G ETH</text>
+          <!-- AP1 -> C0 -->
+          <path d="M 310 240 L 365 240 Q 390 240 390 210 L 390 185" stroke="#fbbf24" stroke-width="2" fill="none"/>
+          <text x="350" y="232" fill="#fbbf24" font-size="8" font-family="monospace">10G ETH</text>
 
-          <!-- HOP 2: Ceragon Node 2 <-> Ceragon Node 3 (80 GHz E-Band Dual-Carrier Link) -->
-          <path d="M 845 140 L 905 140" stroke="url(#grad-mw-link2)" stroke-width="5" id="tsn-link-hop2" stroke-linecap="round"/>
-          <text x="875" y="125" fill="#c084fc" font-size="10" font-weight="bold" font-family="monospace" text-anchor="middle">80 GHz E-Band (10 Gbps)</text>
+          <!-- HOP 1: C0 <-> C1 (60 GHz V-Band) -->
+          <line x1="475" y1="155" x2="575" y2="155" stroke="url(#link-hop1-grad)" stroke-width="6" stroke-linecap="round" id="wire-hop1"/>
+          <text x="525" y="142" fill="#00d4ff" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle" id="wire-hop1-txt">60 GHz V-Band (1 Gbps / 0.15ms)</text>
 
-          <!-- Ceragon Node 3 -> Industrial TSN Sink -->
-          <line x1="995" y1="140" x2="1015" y2="140" stroke="#34d399" stroke-width="3" class="flow-line"/>
+          <!-- Backbone: C1 <-> C2 (10G ETH) -->
+          <line x1="685" y1="155" x2="735" y2="155" stroke="#a78bfa" stroke-width="3" stroke-dasharray="5,3"/>
+          <text x="710" y="142" fill="#a78bfa" font-size="8" font-family="monospace" text-anchor="middle">10G Interconnect</text>
 
-          <!-- ANIMATED PACKET PARTICLES -->
-          <!-- TSN Packet Particle (Green) -->
-          <circle id="tsn-packet-dot" cx="85" cy="65" r="5" fill="#34d399" filter="url(#glow-cyan)">
-            <animate attributeName="opacity" values="1;0.8;1" dur="1s" repeatCount="indefinite"/>
-          </circle>
-          <!-- Best Effort Packet Particle (Amber) -->
-          <circle id="be-packet-dot" cx="85" cy="215" r="5.5" fill="#fbbf24" filter="url(#glow-orange)">
-            <animate attributeName="opacity" values="1;0.7;1" dur="0.8s" repeatCount="indefinite"/>
-          </circle>
+          <!-- HOP 2: C2 <-> C3 (80 GHz E-Band) -->
+          <line x1="845" y1="155" x2="905" y2="155" stroke="url(#link-hop2-grad)" stroke-width="6" stroke-linecap="round" id="wire-hop2"/>
+          <text x="875" y="142" fill="#c084fc" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">80 GHz E-Band (10 Gbps)</text>
 
-          <!-- ==================== TOPOLOGY NODES ==================== -->
-          <!-- 1. TSN Edge Station (Sta 0) -->
-          <g transform="translate(15, 25)">
-            <rect width="70" height="80" rx="10" fill="#0d1420" stroke="#34d399" stroke-width="1.5"/>
-            <text x="35" y="24" fill="#34d399" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">TSN SENSOR</text>
-            <text x="35" y="42" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">STA 0</text>
-            <text x="35" y="58" fill="#7a91a8" font-size="8.5" text-anchor="middle">1ms Period</text>
-            <text x="35" y="72" fill="#34d399" font-size="8" font-family="monospace" text-anchor="middle">TOS 0xc0</text>
+          <!-- C3 -> Sink -->
+          <line x1="1015" y1="155" x2="1045" y2="155" stroke="#34d399" stroke-width="2.5"/>
+
+          <!-- ── IN-FLIGHT DYNAMIC PACKET LAYER ── -->
+          <g id="dynamic-packets-layer"></g>
+
+          <!-- ── NODES ── -->
+          <!-- 1. STA 0 (TSN Sensor) -->
+          <g transform="translate(20, 30)">
+            <rect width="70" height="75" rx="10" fill="#090d16" stroke="#34d399" stroke-width="1.5"/>
+            <text x="35" y="22" fill="#34d399" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">TSN SENSOR</text>
+            <text x="35" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">STA 0</text>
+            <text x="35" y="52" fill="#94a3b8" font-size="8" text-anchor="middle">1ms Period</text>
+            <text x="35" y="66" fill="#34d399" font-size="8" font-family="monospace" text-anchor="middle">TOS 0xc0</text>
           </g>
 
-          <!-- 2. WiFi AP 0 (TSN Slice / AC_VO) -->
-          <g transform="translate(195, 25)">
-            <rect width="120" height="80" rx="10" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5"/>
-            <text x="60" y="22" fill="#00d4ff" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">WIFI AP 0 (TSN)</text>
-            <text x="60" y="40" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">TSN-AP0-SLICED</text>
-            <text x="60" y="56" fill="#34d399" font-size="8.5" font-weight="bold" text-anchor="middle">EDCA: AC_VO</text>
-            <text x="60" y="72" fill="#7a91a8" font-size="8" font-family="monospace" text-anchor="middle" id="tsn-ap0-contention">Cont: 68.4 &mu;s</text>
+          <!-- 2. WiFi AP 0 -->
+          <g transform="translate(200, 30)">
+            <rect width="110" height="75" rx="10" fill="#090d16" stroke="#00d4ff" stroke-width="1.5"/>
+            <text x="55" y="22" fill="#00d4ff" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">WIFI AP 0</text>
+            <text x="55" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">TSN-AP0-SLICED</text>
+            <text x="55" y="52" fill="#34d399" font-size="8.5" font-weight="bold" text-anchor="middle">EDCA: AC_VO</text>
+            <text x="55" y="66" fill="#94a3b8" font-size="7.5" font-family="monospace" text-anchor="middle">Cont: 68.4 &mu;s</text>
           </g>
 
-          <!-- 3. Bulk Surge Station (Sta 1) -->
-          <g transform="translate(15, 175)">
-            <rect width="70" height="80" rx="10" fill="#0d1420" stroke="#fbbf24" stroke-width="1.5"/>
-            <text x="35" y="24" fill="#fbbf24" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">BULK CAM</text>
-            <text x="35" y="42" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">STA 1</text>
-            <text x="35" y="58" fill="#7a91a8" font-size="8.5" text-anchor="middle">Video Surge</text>
-            <text x="35" y="72" fill="#fbbf24" font-size="8" font-family="monospace" text-anchor="middle">TOS 0x00</text>
+          <!-- 3. STA 1 (Bulk Cam) -->
+          <g transform="translate(20, 200)">
+            <rect width="70" height="75" rx="10" fill="#090d16" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="35" y="22" fill="#fbbf24" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">BULK CAM</text>
+            <text x="35" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">STA 1</text>
+            <text x="35" y="52" fill="#94a3b8" font-size="8" text-anchor="middle">Video Surge</text>
+            <text x="35" y="66" fill="#fbbf24" font-size="8" font-family="monospace" text-anchor="middle">TOS 0x00</text>
           </g>
 
-          <!-- 4. WiFi AP 1 (Best Effort / AC_BE) -->
-          <g transform="translate(195, 175)">
-            <rect width="120" height="80" rx="10" fill="#0d1420" stroke="#fbbf24" stroke-width="1.5"/>
-            <text x="60" y="22" fill="#fbbf24" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">WIFI AP 1 (BE)</text>
-            <text x="60" y="40" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">TSN-AP1-BE</text>
-            <text x="60" y="56" fill="#fbbf24" font-size="8.5" font-weight="bold" text-anchor="middle">EDCA: AC_BE</text>
-            <text x="60" y="72" fill="#7a91a8" font-size="8" font-family="monospace" text-anchor="middle" id="tsn-ap1-contention">Cont: 412.5 &mu;s</text>
+          <!-- 4. WiFi AP 1 -->
+          <g transform="translate(200, 200)">
+            <rect width="110" height="75" rx="10" fill="#090d16" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="55" y="22" fill="#fbbf24" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">WIFI AP 1</text>
+            <text x="55" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">TSN-AP1-BE</text>
+            <text x="55" y="52" fill="#fbbf24" font-size="8.5" font-weight="bold" text-anchor="middle">EDCA: AC_BE</text>
+            <text x="55" y="66" fill="#94a3b8" font-size="7.5" font-family="monospace" text-anchor="middle">Cont: 412.5 &mu;s</text>
           </g>
 
-          <!-- 5. Ceragon Node 0 (ctu-96 Ingress / Hop 1 TX) -->
-          <g transform="translate(370, 95)">
-            <rect width="120" height="90" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="2"/>
-            <text x="60" y="22" fill="#00d4ff" font-size="9.5" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON NODE 0</text>
-            <text x="60" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">MH-T261 (ctu-96)</text>
-            <text x="60" y="52" fill="#34d399" font-size="8.5" font-family="monospace" text-anchor="middle">192.168.1.225</text>
-            <!-- Embedded Queue Bar -->
-            <rect x="15" y="60" width="90" height="10" rx="3" fill="#1e293b"/>
-            <rect x="15" y="60" width="8" height="10" rx="3" fill="#34d399" id="tsn-node0-q0"/>
-            <rect x="23" y="60" width="35" height="10" rx="3" fill="#f59e0b" id="tsn-node0-q1"/>
-            <text x="60" y="81" fill="#94a3b8" font-size="7.5" font-family="monospace" text-anchor="middle" id="tsn-node0-qtxt">Q0: 1 pk | Q1: 18 pk</text>
+          <!-- 5. CERAGON NODE 0 (ctu-96 Ingress with Dedicated Buffer Slots) -->
+          <g transform="translate(365, 95)" id="node-ceragon0">
+            <rect width="110" height="120" rx="12" fill="#090d16" stroke="#00d4ff" stroke-width="2" id="c0-box"/>
+            <text x="55" y="20" fill="#00d4ff" font-size="9.5" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON 0 (Ingress)</text>
+            <text x="55" y="35" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">MH-T261 (ctu-96)</text>
+            <text x="55" y="48" fill="#34d399" font-size="8" font-family="monospace" text-anchor="middle">192.168.1.225</text>
+
+            <!-- Buffer Queue Slots Visualizer (10 slots) -->
+            <text x="55" y="62" fill="#94a3b8" font-size="7.5" font-family="monospace" text-anchor="middle">INGRESS BUFFER (150 PKT)</text>
+            <g transform="translate(10, 68)">
+              <!-- 10 Visual Buffer Slots -->
+              <rect x="0" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-0"/>
+              <rect x="9" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-1"/>
+              <rect x="18" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-2"/>
+              <rect x="27" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-3"/>
+              <rect x="36" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-4"/>
+              <rect x="45" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-5"/>
+              <rect x="54" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-6"/>
+              <rect x="63" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-7"/>
+              <rect x="72" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-8"/>
+              <rect x="81" y="0" width="7" height="14" rx="1.5" fill="#1e293b" id="qslot-9"/>
+            </g>
+
+            <text x="55" y="96" fill="#38bdf8" font-size="8" font-family="monospace" text-anchor="middle" id="c0-qdepth-txt">Queue: 0 / 150 pkts</text>
+            <text x="55" y="109" fill="#ef4444" font-size="7.5" font-family="monospace" font-weight="bold" text-anchor="middle" id="c0-drop-txt"></text>
           </g>
 
-          <!-- 6. Ceragon Node 1 (Hop 1 RX / Intermediate) -->
-          <g transform="translate(565, 95)">
-            <rect width="120" height="90" rx="12" fill="#0d1420" stroke="#00d4ff" stroke-width="1.5"/>
-            <text x="60" y="22" fill="#00d4ff" font-size="9.5" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON NODE 1</text>
-            <text x="60" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">MH-T261 Peer</text>
-            <text x="60" y="52" fill="#7a91a8" font-size="8.5" text-anchor="middle">Hop 1 Demux / 60G</text>
-            <text x="60" y="74" fill="#34d399" font-size="8.5" font-family="monospace" text-anchor="middle">V-Band Peer</text>
+          <!-- 6. CERAGON NODE 1 (Hop 1 Peer) -->
+          <g transform="translate(575, 110)">
+            <rect width="110" height="90" rx="12" fill="#090d16" stroke="#00d4ff" stroke-width="1.5"/>
+            <text x="55" y="22" fill="#00d4ff" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON 1</text>
+            <text x="55" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">MH-T261 Peer</text>
+            <text x="55" y="52" fill="#94a3b8" font-size="8" text-anchor="middle">Hop 1 Demux / 60G</text>
+            <text x="55" y="72" fill="#34d399" font-size="8" font-family="monospace" text-anchor="middle">Demod: MCS 8</text>
           </g>
 
-          <!-- 7. Ceragon Node 2 (Hop 2 TX / 80 GHz Gateway) -->
-          <g transform="translate(725, 95)">
-            <rect width="120" height="90" rx="12" fill="#0d1420" stroke="#c084fc" stroke-width="1.5"/>
-            <text x="60" y="22" fill="#c084fc" font-size="9.5" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON NODE 2</text>
-            <text x="60" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">IP-50C Gateway</text>
-            <text x="60" y="52" fill="#7a91a8" font-size="8.5" text-anchor="middle">80 GHz E-Band TX</text>
-            <text x="60" y="74" fill="#c084fc" font-size="8.5" font-family="monospace" text-anchor="middle">10 Gbps Trunk</text>
+          <!-- 7. CERAGON NODE 2 (IP-50C Gateway) -->
+          <g transform="translate(735, 110)">
+            <rect width="110" height="90" rx="12" fill="#090d16" stroke="#c084fc" stroke-width="1.5"/>
+            <text x="55" y="22" fill="#c084fc" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON 2</text>
+            <text x="55" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">IP-50C Gateway</text>
+            <text x="55" y="52" fill="#94a3b8" font-size="8" text-anchor="middle">Hop 2 E-Band TX</text>
+            <text x="55" y="72" fill="#c084fc" font-size="8" font-family="monospace" text-anchor="middle">10 Gbps Trunk</text>
           </g>
 
-          <!-- 8. Ceragon Node 3 (Hop 2 RX / Terminal) -->
-          <g transform="translate(875, 95)">
-            <rect width="120" height="90" rx="12" fill="#0d1420" stroke="#c084fc" stroke-width="1.5"/>
-            <text x="60" y="22" fill="#c084fc" font-size="9.5" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON NODE 3</text>
-            <text x="60" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">IP-50C Terminal</text>
-            <text x="60" y="52" fill="#7a91a8" font-size="8.5" text-anchor="middle">Hop 2 Egress / 80G</text>
-            <text x="60" y="74" fill="#34d399" font-size="8.5" font-family="monospace" text-anchor="middle">Low PDB Jitter</text>
+          <!-- 8. CERAGON NODE 3 (IP-50C Terminal) -->
+          <g transform="translate(905, 110)">
+            <rect width="110" height="90" rx="12" fill="#090d16" stroke="#c084fc" stroke-width="1.5"/>
+            <text x="55" y="22" fill="#c084fc" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">CERAGON 3</text>
+            <text x="55" y="38" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">IP-50C Terminal</text>
+            <text x="55" y="52" fill="#94a3b8" font-size="8" text-anchor="middle">Hop 2 Egress / 80G</text>
+            <text x="55" y="72" fill="#34d399" font-size="8" font-family="monospace" text-anchor="middle">Low PDB Jitter</text>
           </g>
 
-          <!-- 9. TSN Industrial Receiver / Sink -->
-          <g transform="translate(1015, 95)">
-            <rect width="75" height="90" rx="10" fill="#0d1420" stroke="#34d399" stroke-width="1.5"/>
-            <text x="37" y="24" fill="#34d399" font-size="8.5" font-weight="bold" font-family="monospace" text-anchor="middle">TSN SINK</text>
-            <text x="37" y="44" fill="#ffffff" font-size="10.5" font-weight="bold" text-anchor="middle">Controller</text>
-            <text x="37" y="60" fill="#7a91a8" font-size="8" text-anchor="middle">Port 5001</text>
+          <!-- 9. TSN SINK -->
+          <g transform="translate(1045, 110)">
+            <rect width="75" height="90" rx="10" fill="#090d16" stroke="#34d399" stroke-width="1.5"/>
+            <text x="37" y="22" fill="#34d399" font-size="8.5" font-weight="bold" font-family="monospace" text-anchor="middle">TSN SINK</text>
+            <text x="37" y="40" fill="#ffffff" font-size="10.5" font-weight="bold" text-anchor="middle">Sink Node</text>
+            <text x="37" y="56" fill="#94a3b8" font-size="8" text-anchor="middle">Port 5001/5002</text>
             <text x="37" y="74" fill="#34d399" font-size="8" font-family="monospace" text-anchor="middle">SLA &le; 1.5ms</text>
           </g>
+
         </svg>
       </div>
 
-      <!-- TSN Discrete Measurement KPI Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <!-- 1. E2E TSN URLLC Latency -->
-        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 space-y-1 shadow-sm">
-          <span class="text-[10px] text-[var(--muted-foreground)] font-mono block">E2E TSN Latency (1ms URLLC)</span>
-          <div class="flex items-baseline justify-between">
-            <span id="tsn-kpi-latency" class="text-xl font-bold font-mono text-emerald-400">0.88 ms</span>
-            <span id="tsn-kpi-sla-badge" class="px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-emerald-500/20 text-emerald-300">PASS</span>
+      <!-- Live Discrete Event Stream Log Table (NetAnim Packet Trace Format) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white font-mono">📜 Live Discrete Packet Event Trace</span>
+            <span id="trace-events-count-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/20 text-purple-300">
+              0 events loaded
+            </span>
           </div>
-          <div class="w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
-            <div id="tsn-lat-progress" class="h-full bg-emerald-400 transition-all duration-500" style="width: 25%;"></div>
-          </div>
-          <span class="text-[9px] text-[var(--muted-foreground)] font-mono block">Target: &le; 1.50 ms</span>
+          <span class="text-[11px] text-slate-400 font-mono">Synchronized with NetAnim timeline scrubber</span>
         </div>
 
-        <!-- 2. TSN Jitter & PDR -->
-        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 space-y-1 shadow-sm">
-          <span class="text-[10px] text-[var(--muted-foreground)] font-mono block">TSN Jitter &amp; PDR</span>
-          <div class="flex items-baseline justify-between">
-            <span id="tsn-kpi-jitter" class="text-xl font-bold font-mono text-cyan-400">0.04 ms</span>
-            <span id="tsn-kpi-pdr" class="text-[10px] font-bold font-mono text-emerald-400">100% PDR</span>
-          </div>
-          <span class="text-[9px] text-[var(--muted-foreground)] font-mono block">Strict Determinism (No Packet Loss)</span>
-        </div>
-
-        <!-- 3. WiFi EDCA Contention Delay -->
-        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 space-y-1 shadow-sm">
-          <span class="text-[10px] text-[var(--muted-foreground)] font-mono block">WiFi EDCA Contention Delay</span>
-          <div class="flex items-baseline justify-between">
-            <span id="tsn-kpi-contention" class="text-base font-bold font-mono text-cyan-300">68.4 &mu;s</span>
-            <span class="text-[10px] font-mono text-amber-400">BE: 412.5 &mu;s</span>
-          </div>
-          <span class="text-[9px] text-emerald-400 font-mono block">AC_VO CW[3-7] vs AC_BE CW[15-1023]</span>
-        </div>
-
-        <!-- 4. WiFi Airtime & Retries -->
-        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 space-y-1 shadow-sm">
-          <span class="text-[10px] text-[var(--muted-foreground)] font-mono block">WiFi Airtime &amp; Retries</span>
-          <div class="flex items-baseline justify-between">
-            <span id="tsn-kpi-airtime" class="text-xl font-bold font-mono text-amber-400">42.0%</span>
-            <span id="tsn-kpi-retry" class="text-[10px] font-mono text-cyan-300">Retries: 2.1%</span>
-          </div>
-          <span class="text-[9px] text-[var(--muted-foreground)] font-mono block">Channel Contention Load</span>
-        </div>
-
-        <!-- 5. Ceragon Microwave Queue Depths -->
-        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 space-y-1 shadow-sm">
-          <span class="text-[10px] text-[var(--muted-foreground)] font-mono block">Ceragon Link 1 Buffer</span>
-          <div class="flex items-baseline justify-between">
-            <span id="tsn-kpi-q0" class="text-base font-bold font-mono text-emerald-400">Q0: 1 pk</span>
-            <span id="tsn-kpi-q1" class="text-xs font-mono text-amber-400">Q1: 18 pk</span>
-          </div>
-          <span id="tsn-kpi-drops" class="text-[9px] text-emerald-400 font-mono block">0 Drops in High-Prio Band</span>
-        </div>
-
-        <!-- 6. Discrete-Event Engine Status -->
-        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3 space-y-1 shadow-sm">
-          <span class="text-[10px] text-[var(--muted-foreground)] font-mono block">Discrete Sim Engine</span>
-          <div class="flex items-baseline justify-between">
-            <span id="tsn-kpi-wallclock" class="text-base font-bold font-mono text-purple-400">ns-3.45</span>
-            <span id="tsn-kpi-exec-time" class="text-[10px] font-mono text-cyan-300">Live SSH</span>
-          </div>
-          <span id="tsn-kpi-engine-mode" class="text-[9px] text-emerald-300 font-mono block">efid@cersrv-029</span>
+        <div class="overflow-x-auto max-h-56">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="text-slate-400 bg-slate-950/80 sticky top-0 border-b border-slate-800">
+              <tr>
+                <th class="py-2 px-3">Sim Time (s)</th>
+                <th class="py-2 px-3">Node</th>
+                <th class="py-2 px-3">Event Type</th>
+                <th class="py-2 px-3">Flow</th>
+                <th class="py-2 px-3">Pkt ID</th>
+                <th class="py-2 px-3">Size (B)</th>
+                <th class="py-2 px-3">Queue Occupancy</th>
+                <th class="py-2 px-3">Event Annotation &amp; State</th>
+              </tr>
+            </thead>
+            <tbody id="trace-table-body" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="8" class="text-center py-6 text-slate-500">
+                  Click "Run Real NS-3 Simulation" or step through the timeline to stream discrete events.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Real-Time NS-3 Remote Discrete Execution Log Output -->
-      <div class="bg-black/95 rounded-xl p-3 border border-cyan-500/20 font-mono text-xs space-y-1">
-        <div class="flex items-center justify-between text-[11px] text-[var(--muted-foreground)] pb-1 border-b border-gray-800">
-          <span class="flex items-center gap-1.5 text-cyan-400">
-            <span class="animate-pulse">⚡</span> NS-3 Discrete-Event Execution Console (efid@cersrv-029)
-          </span>
-          <span id="tsn-last-cmd" class="text-[10px] text-gray-500 font-mono">./ns3 run 'scratch/tsn_wifi_ceragon'</span>
+      <!-- Flow KPI Summary Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-1">
+          <span class="text-[10px] text-slate-400 font-mono block">E2E TSN URLLC LATENCY</span>
+          <div class="flex items-baseline justify-between">
+            <span id="kpi-tsn-lat" class="text-xl font-bold font-mono text-emerald-400">0.88 ms</span>
+            <span id="kpi-tsn-sla-pill" class="px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-emerald-500/20 text-emerald-300">PASS</span>
+          </div>
+          <span class="text-[9px] text-slate-500 font-mono block">SLA Bound: &le; 1.50 ms</span>
         </div>
-        <pre id="tsn-console-log" class="text-[11px] text-cyan-300 overflow-x-auto max-h-36 whitespace-pre-wrap leading-relaxed">[Ready] Select perturbation and click 'Execute Real NS-3 TSN Simulation'.
-Target: 2x WiFi APs + 4x Ceragon Nodes (ctu-96 &amp; IP-50C) + TSN Sink.
-Testing IEEE 802.1Qbv / EDCA QoS isolation under traffic surge and millimeter-wave rain fade.</pre>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-1">
+          <span class="text-[10px] text-slate-400 font-mono block">TSN JITTER &amp; PDR</span>
+          <div class="flex items-baseline justify-between">
+            <span id="kpi-tsn-jit" class="text-xl font-bold font-mono text-cyan-400">0.04 ms</span>
+            <span id="kpi-tsn-pdr" class="text-[11px] font-bold font-mono text-emerald-400">100% PDR</span>
+          </div>
+          <span class="text-[9px] text-slate-500 font-mono block">Zero Packet Loss in Slice</span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-1">
+          <span class="text-[10px] text-slate-400 font-mono block">WIFI EDCA CONTENTION</span>
+          <div class="flex items-baseline justify-between">
+            <span id="kpi-wifi-vo" class="text-base font-bold font-mono text-cyan-300">68.4 &mu;s</span>
+            <span id="kpi-wifi-be" class="text-xs font-mono text-amber-400">BE: 412.5 &mu;s</span>
+          </div>
+          <span class="text-[9px] text-emerald-400 font-mono block">AC_VO CW[3-7] Priority</span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-1">
+          <span class="text-[10px] text-slate-400 font-mono block">CERAGON LINK 1 BUFFER</span>
+          <div class="flex items-baseline justify-between">
+            <span id="kpi-c0-q0" class="text-base font-bold font-mono text-emerald-400">Band 0: 1 pk</span>
+            <span id="kpi-c0-q1" class="text-xs font-mono text-amber-400">Band 1: 18 pk</span>
+          </div>
+          <span id="kpi-c0-drops" class="text-[9px] text-slate-500 font-mono block">0 Drops</span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-1">
+          <span class="text-[10px] text-slate-400 font-mono block">HOP 1 ACM CAPACITY</span>
+          <div class="flex items-baseline justify-between">
+            <span id="kpi-hop1-rate" class="text-lg font-bold font-mono text-cyan-300">1 Gbps</span>
+            <span id="kpi-hop1-mcs" class="text-xs font-mono text-purple-400">MCS 8</span>
+          </div>
+          <span class="text-[9px] text-slate-500 font-mono block">60 GHz Millimeter-Wave</span>
+        </div>
       </div>
+
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- DYNAMIC LIVE GAUGES & EXECUTION LOGS -->
-    <!-- ===================================================================== -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-      <!-- Left: Real-Time Dynamic Gauges & Meters (5 Cols) -->
-      <div class="lg:col-span-5 space-y-5">
-        
-        <!-- Live Latency Comparison Gauge Card -->
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
-          <div class="flex items-center justify-between border-b border-[var(--border)] pb-2 text-xs">
-            <span class="font-bold text-[var(--foreground)] flex items-center gap-1.5">
-              <span>⏱️</span> Real-Time Latency vs SLA Envelope
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 2: ETSI TERAFLOWSDN (TFS) INNER WORKINGS & DATASTORE DIFF INSPECTOR -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-tfs-internals" class="space-y-5 hidden">
+      
+      <!-- TFS Microservices Architecture State -->
+      <div class="bg-slate-900 border border-purple-500/40 rounded-2xl p-5 shadow-lg space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-xl">
+              ⚙️
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-white font-mono">
+                ETSI TeraFlowSDN Microservices State Machine &amp; Internal Pipeline
+              </h2>
+              <p class="text-xs text-slate-400">
+                Live inspection of Context, Service (PCE), Device Driver layer, and Southbound Polling Daemon.
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="tfs-mode-pill" class="px-2.5 py-1 rounded bg-purple-500/15 text-purple-300 font-mono text-xs border border-purple-500/30">
+              ETSI TeraFlowSDN Release 3
             </span>
-            <span id="gauge-sla-badge" class="font-mono text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10">SLA: &le; 1.50 ms</span>
-          </div>
-
-          <!-- Dynamic Latency Bar -->
-          <div class="space-y-2">
-            <div class="flex justify-between items-baseline text-xs">
-              <span class="text-[var(--muted-foreground)]">Measured / Simulated Latency:</span>
-              <span id="gauge-lat-val" class="text-xl font-bold font-mono text-emerald-400">0.65 ms</span>
-            </div>
-
-            <!-- Visual Bar with threshold marker -->
-            <div class="relative w-full h-5 bg-black/60 rounded-full overflow-hidden border border-[var(--border)]">
-              <!-- Threshold vertical line at 15% (1.5ms out of 10ms max) -->
-              <div class="absolute left-[15%] top-0 bottom-0 w-0.5 bg-yellow-400 z-10" title="SLA Limit: 1.5ms"></div>
-              <!-- Progress fill -->
-              <div id="gauge-lat-bar" class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-700 rounded-full" style="width: 6.5%;"></div>
-            </div>
-
-            <div class="flex justify-between text-[10px] text-[var(--muted-foreground)] font-mono">
-              <span>0.0 ms</span>
-              <span class="text-yellow-400 font-bold">1.5 ms (URLLC Limit)</span>
-              <span>10.0 ms</span>
-            </div>
-          </div>
-
-          <!-- Queue Depth & Loss Indicator -->
-          <div class="grid grid-cols-2 gap-3 pt-2 border-t border-[var(--border)] text-xs">
-            <div>
-              <span class="text-[var(--muted-foreground)] block">Packet Buffer Depth:</span>
-              <div class="flex items-center gap-2 mt-1">
-                <div class="w-full bg-black/60 rounded-full h-2.5 overflow-hidden border border-[var(--border)]">
-                  <div id="gauge-queue-bar" class="h-full bg-cyan-400 transition-all duration-700" style="width: 8%;"></div>
-                </div>
-                <strong id="gauge-queue-val" class="font-mono text-cyan-400 text-[11px]">8 pkts</strong>
-              </div>
-            </div>
-
-            <div>
-              <span class="text-[var(--muted-foreground)] block">Packet Loss Rate:</span>
-              <strong id="gauge-loss-val" class="font-mono text-emerald-400 text-sm mt-1 block">0.00 %</strong>
-            </div>
           </div>
         </div>
 
-        <!-- Ceragon Hardware Live Telemetry Card -->
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-3">
-          <div class="flex items-center justify-between border-b border-[var(--border)] pb-2 text-xs">
-            <span class="font-bold text-amber-400 flex items-center gap-1.5">
-              <span>📡</span> Ceragon MH-T261 Live State
+        <!-- 4 Microservices Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          
+          <!-- 1. Context Service -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-purple-300 font-mono">1. CONTEXT SERVICE</span>
+              <span class="px-1.5 py-0.5 text-[9px] font-mono bg-emerald-500/20 text-emerald-400 rounded">gRPC :10010</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Central state store backed by CockroachDB.</p>
+            <div class="space-y-1 text-[11px] font-mono">
+              <div class="flex justify-between"><span class="text-slate-500">Topology:</span> <span class="text-cyan-300">admin/admin</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Devices Loaded:</span> <span class="text-white font-bold">34 nodes</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Links Loaded:</span> <span class="text-white font-bold">34 links</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Read QPS:</span> <span class="text-emerald-400">42.8 ops/s</span></div>
+            </div>
+          </div>
+
+          <!-- 2. Service / PCE -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-cyan-300 font-mono">2. SERVICE / PCE</span>
+              <span class="px-1.5 py-0.5 text-[9px] font-mono bg-emerald-500/20 text-emerald-400 rounded">gRPC :10030</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Constrained Shortest Path First (CSPF) calculation.</p>
+            <div class="space-y-1 text-[11px] font-mono">
+              <div class="flex justify-between"><span class="text-slate-500">Algorithm:</span> <span class="text-cyan-300">CSPF / TI-LFA</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Active Slices:</span> <span class="text-purple-300 font-bold">slice-uran-6g</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Bandwidth:</span> <span class="text-emerald-400 font-bold">2500 Mbps</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Compute Time:</span> <span class="text-yellow-400">4.12 ms</span></div>
+            </div>
+          </div>
+
+          <!-- 3. Device Service & Drivers -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-emerald-300 font-mono">3. DEVICE SERVICE</span>
+              <span class="px-1.5 py-0.5 text-[9px] font-mono bg-emerald-500/20 text-emerald-400 rounded">gRPC :10020</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Southbound mediation &amp; 2PC transactions.</p>
+            <div class="space-y-1 text-[11px] font-mono">
+              <div class="flex justify-between"><span class="text-slate-500">Driver Layer:</span> <span class="text-emerald-300">IETF RESTCONF</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Target HW:</span> <span class="text-white font-bold">192.168.1.225</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Protocol:</span> <span class="text-cyan-300">RFC 8040 (HTTPS)</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">2PC State:</span> <span class="text-emerald-400 font-bold">COMMITTED</span></div>
+            </div>
+          </div>
+
+          <!-- 4. Monitoring & Telemetry -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-300 font-mono">4. MONITORING SERVICE</span>
+              <span class="px-1.5 py-0.5 text-[9px] font-mono bg-emerald-500/20 text-emerald-400 rounded">gRPC :10040</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Telemetry polling into QuestDB &amp; Prometheus.</p>
+            <div class="space-y-1 text-[11px] font-mono">
+              <div class="flex justify-between"><span class="text-slate-500">Polled RSSI:</span> <span class="text-emerald-400 font-bold">-58.4 dBm</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Polled SNR:</span> <span class="text-cyan-300 font-bold">24.1 dB</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Polled Temp:</span> <span class="text-amber-400">61.0 °C</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Polling Rate:</span> <span class="text-purple-300">10 Hz</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Candidate Datastore Diff Viewer (Before vs After Actuation) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white font-mono">📝 Candidate Datastore Diff (Before vs. After Actuation)</span>
+            <span class="px-2 py-0.5 text-[10px] font-mono bg-cyan-500/20 text-cyan-300 rounded">
+              Device: Ceragon MH-T261 (f676623c-1a65-54bd-b1e8-279c8a6d8a1c)
             </span>
-            <span class="font-mono text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded">192.168.1.225:80</span>
           </div>
-
-          <div class="grid grid-cols-2 gap-3 text-xs">
-            <div class="p-2.5 rounded-lg bg-[var(--background)] border border-[var(--border)]">
-              <span class="text-[var(--muted-foreground)] block">RF Carrier:</span>
-              <strong id="hw-freq-val" class="font-mono text-cyan-400">60.48 GHz (V-Band)</strong>
-            </div>
-
-            <div class="p-2.5 rounded-lg bg-[var(--background)] border border-[var(--border)]">
-              <span class="text-[var(--muted-foreground)] block">Modulation (ACM):</span>
-              <strong id="hw-mcs-val" class="font-mono text-purple-400">MCS 8 (64-QAM)</strong>
-            </div>
-
-            <div class="p-2.5 rounded-lg bg-[var(--background)] border border-[var(--border)]">
-              <span class="text-[var(--muted-foreground)] block">RSSI / SNR:</span>
-              <strong id="hw-rssi-val" class="font-mono text-emerald-400">-58.4 dBm / 24.1 dB</strong>
-            </div>
-
-            <div class="p-2.5 rounded-lg bg-[var(--background)] border border-[var(--border)]">
-              <span class="text-[var(--muted-foreground)] block">Modem Temp:</span>
-              <strong id="hw-temp-val" class="font-mono text-amber-400">61.0 °C (Normal)</strong>
-            </div>
-          </div>
+          <span class="text-xs text-slate-400 font-mono">RFC 8040 / Candidate Datastore</span>
         </div>
 
-        <!-- Pre-Flight Safety Boundary Gates -->
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-3">
-          <div class="flex items-center justify-between text-xs font-bold text-[var(--foreground)] border-b border-[var(--border)] pb-2">
-            <span>🛡️ Pre-Flight Safety Envelopes (3GPP TS 28.561)</span>
-            <span id="gate-summary" class="text-emerald-400 font-mono text-[11px]">ALL GATES PASSED (4/4)</span>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          
+          <!-- BEFORE ACTUATION -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-red-400 font-mono flex items-center gap-1.5">
+                <span>🔴</span> Running Datastore State (Before Actuation)
+              </span>
+              <span class="text-[10px] text-slate-500 font-mono">Unprotected State</span>
+            </div>
+            <pre class="bg-black/90 p-4 rounded-xl border border-red-500/30 text-[11px] text-red-300 overflow-x-auto h-64 font-mono leading-relaxed"><code id="code-datastore-before">{
+  "device_uuid": "f676623c-1a65-54bd-b1e8-279c8a6d8a1c",
+  "device_type": "microwave-radio-siklu-mh-t261",
+  "config_rules": [
+    {
+      "action": "SET",
+      "resource_key": "/radio/acm/profile",
+      "resource_value": "ACM_FLOOR_MCS_0 (QPSK 100Mbps - UNPROTECTED)"
+    },
+    {
+      "action": "SET",
+      "resource_key": "/interface[id=eth0]/qos/queue",
+      "resource_value": "FIFO_DEFAULT_NO_PRIORITY"
+    },
+    {
+      "action": "SET",
+      "resource_key": "/radio/carrier/frequency",
+      "resource_value": "60.48 GHz (High Atmospheric O2 Absorption)"
+    },
+    {
+      "action": "SET",
+      "resource_key": "/traffic-engineering/reserved-bw",
+      "resource_value": "1000 Mbps (Standard Best-Effort)"
+    }
+  ]
+}</code></pre>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)] flex items-center justify-between" id="gate-rf">
-              <span class="text-[var(--muted-foreground)] text-[11px]">RF Band (57–71 GHz):</span>
-              <span class="font-bold text-emerald-400 font-mono">PASS</span>
+
+          <!-- AFTER ACTUATION -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+                <span>🟢</span> Candidate Datastore State (After TFS 2PC Commit)
+              </span>
+              <span class="text-[10px] text-emerald-400 font-mono font-bold">Mitigated &amp; Hardened</span>
             </div>
-            <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)] flex items-center justify-between" id="gate-acm">
-              <span class="text-[var(--muted-foreground)] text-[11px]">ACM Floor (&ge; MCS 2):</span>
-              <span class="font-bold text-emerald-400 font-mono">PASS</span>
-            </div>
-            <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)] flex items-center justify-between" id="gate-thermal">
-              <span class="text-[var(--muted-foreground)] text-[11px]">Thermal Limit (&lt; 85°C):</span>
-              <span class="font-bold text-emerald-400 font-mono">PASS</span>
-            </div>
-            <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)] flex items-center justify-between" id="gate-reserve">
-              <span class="text-[var(--muted-foreground)] text-[11px]">URLLC Reserved Slice:</span>
-              <span class="font-bold text-emerald-400 font-mono">PASS</span>
-            </div>
+            <pre class="bg-black/90 p-4 rounded-xl border border-emerald-500/30 text-[11px] text-emerald-300 overflow-x-auto h-64 font-mono leading-relaxed"><code id="code-datastore-after">{
+  "device_uuid": "f676623c-1a65-54bd-b1e8-279c8a6d8a1c",
+  "device_type": "microwave-radio-siklu-mh-t261",
+  "config_rules": [
+    {
+      "action": "SET",
+      "resource_key": "/radio/acm/profile",
+      "resource_value": "ACM_FLOOR_MCS_4 (64QAM 500Mbps - HARDENED)"
+    },
+    {
+      "action": "SET",
+      "resource_key": "/interface[id=eth0]/qos/queue",
+      "resource_value": "IEEE_802.1Q_PCP_6_STRICT_PRIORITY"
+    },
+    {
+      "action": "SET",
+      "resource_key": "/radio/carrier/frequency",
+      "resource_value": "64.80 GHz (Low O2 Absorption Window)"
+    },
+    {
+      "action": "SET",
+      "resource_key": "/traffic-engineering/reserved-bw",
+      "resource_value": "2500 Mbps (URLLC Protected Slice)"
+    }
+  ]
+}</code></pre>
           </div>
+
         </div>
 
-        <!-- Resolution Governor & KPI Scoping Card -->
-        <div class="bg-[var(--card)] border border-cyan-500/30 rounded-2xl p-5 shadow-sm space-y-3">
-          <div class="flex items-center justify-between border-b border-[var(--border)] pb-2 text-xs">
-            <span class="font-bold text-cyan-400 flex items-center gap-1.5">
-              <span>🎯</span> Resolution &amp; Fidelity Scoping
-            </span>
-            <span id="res-fidelity-badge" class="font-mono text-[10px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">75% Fidelity</span>
-          </div>
-
-          <div class="space-y-2.5 text-xs">
-            <div>
-              <div class="flex justify-between items-baseline mb-1">
-                <span class="text-[var(--muted-foreground)]">Active Fidelity Tier:</span>
-                <strong id="res-tier-name" class="font-mono text-cyan-300 text-xs">Tier 3: Physical mmWave/Microwave Channel</strong>
-              </div>
-              <!-- Fidelity Bar -->
-              <div class="w-full bg-black/60 rounded-full h-2 overflow-hidden border border-[var(--border)]">
-                <div id="res-fidelity-bar" class="h-full bg-gradient-to-r from-purple-500 via-cyan-400 to-emerald-400 transition-all duration-500 rounded-full" style="width: 75%;"></div>
-              </div>
+        <!-- Diff Impact Explanations -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <span class="text-xs font-bold text-slate-300 font-mono block">💡 Physical Telecommunication Impact of Committed Rules</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+            <div class="p-2 rounded bg-slate-900 border border-slate-800">
+              <strong class="text-emerald-400 font-mono block">ACM Floor Hardened (&ge; MCS 4):</strong>
+              <span class="text-slate-400 text-[11px]">Prevents modulation collapsing below 500 Mbps during heavy tropical rain cells (ITU-R P.838).</span>
             </div>
-
-            <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
-              <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
-                <span class="text-[var(--muted-foreground)] text-[10px] block">Graph Sub-Scope:</span>
-                <span id="res-graph-scope" class="text-emerald-400 font-bold">8 / 34 Nodes (25%)</span>
-              </div>
-              <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
-                <span class="text-[var(--muted-foreground)] text-[10px] block">Est. Compute Latency:</span>
-                <span id="res-est-latency" class="text-yellow-400 font-bold">&lt; 650 ms</span>
-              </div>
-            </div>
-
-            <!-- Retained vs Pruned KPIs tags -->
-            <div class="space-y-2 pt-1">
-              <div>
-                <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Retained In Simulation:</span>
-                <div id="res-retained-tags" class="flex flex-wrap gap-1 mt-1">
-                  <!-- Tag badges -->
-                </div>
-              </div>
-              <div>
-                <span class="text-[10px] font-bold text-red-400/80 uppercase tracking-wider block">Pruned / Abstracted (Compute Saved):</span>
-                <div id="res-pruned-tags" class="flex flex-wrap gap-1 mt-1">
-                  <!-- Tag badges -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Active NS-3 C++ Modules -->
-            <div>
-              <span class="text-[10px] font-bold text-purple-300 uppercase tracking-wider block">Active NS-3 C++ Modules:</span>
-              <div id="res-modules-tags" class="flex flex-wrap gap-1 mt-1">
-                <!-- Tag badges -->
-              </div>
-            </div>
-
-            <!-- Governor Digest explanation -->
-            <div class="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-200 mt-2 font-sans leading-relaxed" id="res-digest">
-              🎯 Resolution Governor: Selected [Tier 3: Physical mmWave/Microwave Channel] (75% fidelity). Retained 9 critical KPIs for goal 'channel_degradation', pruning 4 non-essential metrics.
+            <div class="p-2 rounded bg-slate-900 border border-slate-800">
+              <strong class="text-cyan-400 font-mono block">IEEE 802.1Q PCP Class 6 Activated:</strong>
+              <span class="text-slate-400 text-[11px]">Enables PfifoFast Band 0 strict priority, guaranteeing zero queuing delay for 1ms URLLC telemetry.</span>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Right: Real-Time Execution Trace Terminal (7 Cols) -->
-      <div class="lg:col-span-7 space-y-5">
-        
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-3 shadow-sm h-full flex flex-col">
-          <div class="flex items-center justify-between text-xs font-bold text-[var(--foreground)] border-b border-[var(--border)] pb-2">
-            <span class="flex items-center gap-2">
-              <span class="animate-pulse">📜</span> Real-Time Cross-Repo Wire Execution Trace
+      <!-- RFC 8040 RESTCONF Wire Protocol Inspector -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white font-mono">📡 RFC 8040 RESTCONF Wire Protocol Log</span>
+            <span class="px-2 py-0.5 text-[10px] font-mono bg-emerald-500/20 text-emerald-400 rounded">
+              Direct Physical Socket: 192.168.1.225:80
             </span>
-            <span class="text-cyan-400 font-mono text-[11px]">TFS :8088 | NS-3 cersrv-029 | RESTCONF :80</span>
           </div>
-
-          <div class="bg-black/90 rounded-xl p-4 font-mono text-xs text-cyan-300 space-y-1.5 flex-1 min-h-[460px] overflow-y-auto border border-cyan-500/20" id="term-log">
-            <div class="text-[var(--muted-foreground)]">[2:48:45 PM] Digital Twin Cross-Repo Operations Framework initialized.</div>
-            <div class="text-emerald-400">[2:48:45 PM] Verified connectivity: TFS (:8088), NS-3 (cersrv-029), Ceragon MH-T261 (192.168.1.225).</div>
-            <div class="text-purple-300">[2:48:45 PM] NDTI shadow datastore synchronized with physical Ceragon hardware.</div>
-            <div class="text-cyan-400 font-bold">[2:48:45 PM] [Ready] Click 'Auto-Play Live Flow' or 'Next ⏭' to execute the end-to-end closed loop visually.</div>
-          </div>
-
-          <div class="flex items-center justify-between text-[11px] text-[var(--muted-foreground)] pt-2 border-t border-[var(--border)]">
-            <span>Round-Trip Latency: TFS 25.2ms | Ceragon HW 550.3ms | NS-3 871.5ms</span>
-            <button onclick="clearTerminal()" class="hover:text-[var(--foreground)] underline font-mono">Clear Logs</button>
-          </div>
+          <button onclick="refreshTfsInternals()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-cyan-300">
+            🔄 Refresh Wire State
+          </button>
         </div>
 
+        <div class="space-y-2.5" id="restconf-wire-container">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 3: 5-STAGE CLOSED-LOOP AUTOMATION PIPELINE -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-closed-loop" class="space-y-5 hidden">
+      
+      <!-- Stepper Controls Banner -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white font-mono">
+            Autonomous Closed-Loop Stepper (Stages 1 through 5)
+          </h2>
+          <p class="text-xs text-slate-400">
+            Execute step-by-step to inspect intermediate handoffs or run the full autonomous loop.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="btn-step-next" onclick="stepNextStage()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>⏭</span> Step Stage (<span id="btn-next-num">1</span>/5)
+          </button>
+          <button id="btn-run-all-loop" onclick="runEntireClosedLoop()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-bold text-xs shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>🚀</span> Auto-Run All 5 Stages
+          </button>
+        </div>
+      </div>
+
+      <!-- 5 Stages Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5" id="card-stage-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold font-mono text-purple-400">STAGE 1</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400" id="badge-st-1">PENDING</span>
+          </div>
+          <strong class="text-xs text-white block">Intent Ingestion</strong>
+          <p class="text-[11px] text-slate-400">TMF921 URLLC contract: latency &le; 1.5ms.</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5" id="card-stage-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold font-mono text-cyan-400">STAGE 2</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400" id="badge-st-2">PENDING</span>
+          </div>
+          <strong class="text-xs text-white block">TFS State Sync</strong>
+          <p class="text-[11px] text-slate-400">Pull live hardware telemetry (:8088).</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5" id="card-stage-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold font-mono text-yellow-400">STAGE 3</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400" id="badge-st-3">PENDING</span>
+          </div>
+          <strong class="text-xs text-white block">NS-3 Discrete Sim</strong>
+          <p class="text-[11px] text-slate-400">What-if simulation on cersrv-029.</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5" id="card-stage-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold font-mono text-emerald-400">STAGE 4</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400" id="badge-st-4">PENDING</span>
+          </div>
+          <strong class="text-xs text-white block">Decision Gatekeeper</strong>
+          <p class="text-[11px] text-slate-400">3GPP TS 28.561 pre-flight checks (4/4).</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5" id="card-stage-5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold font-mono text-purple-400">STAGE 5</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400" id="badge-st-5">PENDING</span>
+          </div>
+          <strong class="text-xs text-white block">2PC HW Actuation</strong>
+          <p class="text-[11px] text-slate-400">Candidate commit to Ceragon ctu-96.</p>
+        </div>
+      </div>
+
+      <!-- Closed Loop Terminal Console -->
+      <div class="bg-black/90 rounded-2xl p-5 border border-slate-800 font-mono text-xs space-y-2">
+        <div class="flex items-center justify-between text-slate-500 border-b border-slate-800 pb-2">
+          <span>CONSOLE LOG &mdash; CLOSED LOOP EXECUTION</span>
+          <span id="loop-time-tag">IDLE</span>
+        </div>
+        <div id="closed-loop-log" class="space-y-1 max-h-64 overflow-y-auto text-slate-300">
+          <div class="text-slate-500">// Ready to initiate closed loop. Click "Step Stage" or "Auto-Run All 5 Stages".</div>
+        </div>
       </div>
 
     </div>
 
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- COMPLETE VISUAL ENGINE & WIRE TRACE SCRIPT -->
-  <!-- ===================================================================== -->
   <script>
-    let activeStage = 1;
-    let isPlaying = false;
-    let playInterval = null;
-    let currentScenario = 'channel_degradation';
+    // ═════════════════════════════════════════════════════════════════════════
+    // GLOBAL STATE & DISCRETE SIMULATION ENGINE
+    // ═════════════════════════════════════════════════════════════════════════
+    let activeTab = 'simulation';
+    let currentStage = 1;
+    let isSimPlaying = false;
+    let simCurrentTime = 0.0;
+    let simMaxTime = 2.5;
+    let simSpeed = 1.0;
+    let animFrameId = null;
+    let lastAnimTime = null;
+    let discreteEvents = [];
+    let activeScenario = 'traffic_surge';
+    let isTsnQosEnabled = false;
 
-    // Node Centers in the SVG Diagram
-    const nodeCoords = {
-      1: { x: 130, y: 115 },
-      2: { x: 390, y: 115 },
-      3: { x: 660, y: 115 },
-      4: { x: 930, y: 115 },
-      5: { x: 930, y: 342 },
-      6: { x: 660, y: 342 },
-      7: { x: 390, y: 342 },
-      8: { x: 130, y: 342 }
+    // Node Coordinate Mapping for in-flight packets (SVG Canvas)
+    const NODE_COORDS = {
+      "STA0": { x: 55, y: 70 },
+      "AP0":  { x: 255, y: 70 },
+      "STA1": { x: 55, y: 240 },
+      "AP1":  { x: 255, y: 240 },
+      "C0":   { x: 420, y: 155 },
+      "C1":   { x: 630, y: 155 },
+      "C2":   { x: 790, y: 155 },
+      "C3":   { x: 960, y: 155 },
+      "SINK": { x: 1080, y: 155 }
     };
 
-    // Stage Wire Payloads and Telecom Models
-    const stageData = {
-      channel_degradation: {
-        1: {
-          title: "STAGE 1: Declarative Intent Ingestion",
-          pill: "STAGE 1",
-          opType: "WRITE: REST POST",
-          status: "INGESTED",
-          host: "CER-Intent Server (http://localhost:5000/api/v1/intent)",
-          std: "TM Forum TMF921 Intent Management / RFC 8259",
-          models: "NLP Intent Parser, SLA Bounds Matrix",
-          txMeta: "application/json (RFC 8259)",
-          txCode: JSON.stringify({
-            "intent_type": "URLLC_LATENCY_ASSURANCE",
-            "sla_profile": "MISSION_CRITICAL_5G",
-            "target_device": "Ceragon-MH-T261-ctu-96 (192.168.1.225)",
-            "bounds": {
-              "max_latency_ms": 1.5,
-              "min_availability_pct": 99.999,
-              "max_jitter_ms": 0.2
-            },
-            "condition": "Adverse physical channel / severe rain cell"
-          }, null, 2),
-          rxMeta: "HTTP 200 OK (application/json)",
-          rxCode: JSON.stringify({
-            "status": "INGESTED",
-            "intent_id": "INT-DT-20260927-URLLC-01",
-            "compliance_target": "< 1.50 ms",
-            "assigned_slice": "slice-uran-6g",
-            "priority": "PREEMPTIVE_TIER_1"
-          }, null, 2),
-          digest: "The operator declared a mission-critical business goal via TMF921: maintain URLLC latency strictly under 1.50 ms and 99.999% availability during severe weather. The Intent Engine synthesized this into formal constraints and initiated the digital twin co-simulation loop.",
-          latency: 0.65,
-          queue: 8,
-          loss: 0.0,
-          freq: "60.48 GHz",
-          mcs: "MCS 8",
-          rssi: "-58.4 dBm / 24.1 dB",
-          temp: "61.0 °C",
-          log: "[Stage 1] Ingesting TMF921 Intent SLA contract (Latency <= 1.5ms)..."
-        },
-        2: {
-          title: "STAGE 2: DTI Scenario Core & State Reconcile",
-          pill: "STAGE 2",
-          opType: "READ: RESTCONF GET",
-          status: "SYNCHRONIZED",
-          host: "TFS (:8088) & Ceragon Hardware (192.168.1.225:80)",
-          std: "IETF NMRG DTI (draft-paillisse-02) / RFC 8040",
-          models: "What-If Scenario Sandbox Router, Telemetry Ingestion Filter",
-          txMeta: "HTTP GET /restconf/ds/ietf-datastores:operational",
-          txCode: "GET /restconf/ds/ietf-datastores:operational HTTP/1.1\nHost: 192.168.1.225\nAuthorization: Basic YWRtaW46YWRtaW4=\nAccept: application/yang-data+json",
-          rxMeta: "HTTP 200 OK (YANG JSON)",
-          rxCode: JSON.stringify({
-            "ietf-interfaces:interfaces": {
-              "interface": [
-                { "name": "eth1", "speed": "1.0 Gbps", "oper-status": "UP" },
-                { "name": "Sector 1", "frequency_ghz": 60.48, "active_mcs": 8, "rssi_dbm": -58.4, "snr_db": 24.1, "modem_temp_c": 61.0 }
-              ]
-            },
-            "tfs_mesh": { "nodes_count": 34, "links_count": 34, "context": "admin", "topology": "admin" }
-          }, null, 2),
-          digest: "The digital twin queries the authoritative Source of Truth: ETSI TeraFlowSDN and the live Ceragon MH-T261 device over RESTCONF. It confirms 34 active topology nodes and establishes baseline radio parameters (60.48 GHz, MCS 8, -58.4 dBm).",
-          latency: 0.65,
-          queue: 8,
-          loss: 0.0,
-          freq: "60.48 GHz",
-          mcs: "MCS 8",
-          rssi: "-58.4 dBm / 24.1 dB",
-          temp: "61.0 °C",
-          log: "[Stage 2] Reconciling live topology & hardware telemetry from TFS (:8088)..."
-        },
-        3: {
-          title: "STAGE 3: NS-3 Discrete Simulation & Prediction",
-          pill: "STAGE 3",
-          opType: "SIMULATE: SSH BATCH",
-          status: "BREACH DETECTED",
-          host: "efid@cersrv-029 (/home/efid/ns3-dev/ns3)",
-          std: "ns-3 Discrete-Event Engine v3.45 & ITU-R P.838",
-          models: "M/M/1/K Queueing, DropTail QueueDisc, ITU-R Rain Attenuation",
-          txMeta: "SSH BatchMode Command",
-          txCode: `./ns3 run "scratch/telecom-digital-twin \\\n  --scenario=channel_degradation \\\n  --rainRateMmHr=55.0 \\\n  --distanceKm=0.8 \\\n  --carrierFreqGhz=60.48 \\\n  --baselineMcs=8 \\\n  --trafficRateMbps=980"`,
-          rxMeta: "NS-3 Discrete Event Results",
-          rxCode: JSON.stringify({
-            "discrete_events_processed": 148209,
-            "rain_attenuation_db_per_km": 19.93,
-            "path_fade_db": 15.94,
-            "post_fade_snr_db": 8.16,
-            "forced_modulation": "MCS 1 (BPSK)",
-            "queue_depth_packets": 62,
-            "predicted_round_trip_latency_ms": 6.77,
-            "packet_loss_rate": 0.052,
-            "sla_breach_detected": true,
-            "sla_deficit_ms": -5.27
-          }, null, 2),
-          digest: "🚨 NS-3 calculated that 55mm/hr tropical rain attenuation (19.93 dB/km) collapses the radio link from MCS 8 to MCS 1. Packet queue backlog spikes to 62 packets, inflating round-trip latency to 6.77 ms, causing an immediate +5.27 ms breach of the 1.5 ms URLLC SLA!",
-          latency: 6.77,
-          queue: 62,
-          loss: 5.2,
-          freq: "60.48 GHz",
-          mcs: "MCS 1 (Degraded)",
-          rssi: "-74.2 dBm / 8.2 dB",
-          temp: "61.0 °C",
-          log: "[Stage 3] NS-3 discrete simulation finished: Predicted Latency 6.77 ms (BREACH PREDICTED)"
-        },
-        4: {
-          title: "STAGE 4: AI Decision Engine & Safety Gatekeeper",
-          pill: "STAGE 4",
-          opType: "AUDIT: MULTI-CONSTRAINT",
-          status: "APPROVED (4/4 PASS)",
-          host: "Ceragon Autonomic Controller / Heuristic Solver",
-          std: "3GPP TS 28.561 Closed-Loop Management & Safety Envelopes",
-          models: "4/4 Boundary Envelopes (RF, Thermal, Modulation, Reserve)",
-          txMeta: "Decision Engine Optimization Query",
-          txCode: JSON.stringify({
-            "predicted_breach": "CHANNEL_DEGRADATION (6.77 ms > 1.5 ms)",
-            "eval_actions": [
-              "DROP_BEST_EFFORT_TRAFFIC",
-              "ACM_FLOOR_HARDENING & RETUNE",
-              "EXPENSIVE_SATELLITE_OFFLOAD"
-            ]
-          }, null, 2),
-          rxMeta: "Audited Action Proposal",
-          rxCode: JSON.stringify({
-            "selected_action": "ACM_FLOOR_HARDENING & RETUNE",
-            "safety_envelopes_audit": {
-              "rf_band_check": "PASS (64.80 GHz is within licensed 57-71 GHz V-Band)",
-              "modulation_floor_check": "PASS (ACM floor >= MCS 2 prevents link drops)",
-              "thermal_boundary_check": "PASS (61 C is well below 85 C max limit)",
-              "reserve_capacity_check": "PASS (URLLC slice protected from starvation)"
-            },
-            "synthesized_rules": [
-              { "target": "ctu-96", "param": "active-mcs-floor", "value": 2 },
-              { "target": "ctu-96", "param": "carrier-frequency-mhz", "value": 64800 }
-            ],
-            "predicted_remediated_latency_ms": 1.12
-          }, null, 2),
-          digest: "The AI Decision Engine evaluated remediation actions against 3GPP TS 28.561 safety envelopes. Hardening the ACM modulation floor to MCS >= 2 and retuning frequency to 64.8 GHz passes all 4 boundary checks and is predicted to reduce latency to 1.12 ms.",
-          latency: 6.77,
-          queue: 62,
-          loss: 5.2,
-          freq: "60.48 GHz",
-          mcs: "MCS 1",
-          rssi: "-74.2 dBm / 8.2 dB",
-          temp: "61.0 °C",
-          log: "[Stage 4] Decision Engine: Pre-flight safety verified (4/4 PASS). Selected: ACM_FLOOR_HARDENING & RETUNE"
-        },
-        5: {
-          title: "STAGE 5: ETSI TeraFlowSDN 2-Phase Commit",
-          pill: "STAGE 5",
-          opType: "WRITE: 2PC COMMIT",
-          status: "COMMITTED",
-          host: "TFS Controller (http://localhost:8088)",
-          std: "ETSI TeraFlowSDN Release 3 NBI / 2PC Candidate",
-          models: "Context CockroachDB, Device Service, 2-Phase Commit Atomic Engine",
-          txMeta: "POST /device/f676623c.../config (Candidate Write)",
-          txCode: JSON.stringify({
-            "device_uuid": "f676623c-1a65-54bd-b1e8-279c8a6d8a1c",
-            "transaction_phase": "COMMIT",
-            "config_rules": [
-              {
-                "action": "CONFIGRULEACTION_SET",
-                "custom": {
-                  "resource_key": "/device/operating_parameters",
-                  "resource_value": "{\"active_mcs_floor\": 2, \"frequency_ghz\": 64.8, \"frequency_mhz\": 64800, \"bandwidth_mhz\": 2000}"
-                }
-              }
-            ]
-          }, null, 2),
-          rxMeta: "HTTP 200 OK (Transaction Committed)",
-          rxCode: JSON.stringify({
-            "status": "DEVICE_CONFIGURED",
-            "tx_id": "tx-2pc-991204",
-            "device_id": "f676623c-1a65-54bd-b1e8-279c8a6d8a1c",
-            "cockroachdb_commit": "OK",
-            "duration_ms": 28.4
-          }, null, 2),
-          digest: "TeraFlowSDN coordinates an atomic 2-Phase Commit transaction on its candidate datastore. It validates link parameters against the CockroachDB topology database before pushing hardware commands to eliminate configuration race conditions.",
-          latency: 4.20,
-          queue: 38,
-          loss: 2.1,
-          freq: "64.80 GHz (Pending)",
-          mcs: "MCS >= 2 (Locked)",
-          rssi: "-65.0 dBm",
-          temp: "61.2 °C",
-          log: "[Stage 5] ETSI TeraFlowSDN 2PC transaction initiated on candidate datastore..."
-        },
-        6: {
-          title: "STAGE 6: Physical Ceragon Hardware Actuation",
-          pill: "STAGE 6",
-          opType: "WRITE: RESTCONF PATCH",
-          status: "RESTCONF 200 OK",
-          host: "https://192.168.1.225/restconf/ds/ietf-datastores:candidate",
-          std: "RFC 8040 RESTCONF / Ceragon YANG Schemas",
-          models: "Terragraph Phased Array Beamforming, Hitless ACM Modulation",
-          txMeta: "PATCH /restconf/ds/ietf-datastores:candidate",
-          txCode: `PATCH /restconf/ds/ietf-datastores:candidate HTTP/1.1\nHost: 192.168.1.225\nAuthorization: Basic YWRtaW46YWRtaW4=\nContent-Type: application/yang-data+json\n\n{\n  "radio-sector:sector": {\n    "sector-id": 1,\n    "active-mcs-floor": 2,\n    "carrier-frequency-mhz": 64800,\n    "channel-bandwidth-mhz": 2000,\n    "hitless-acm": true\n  }\n}`,
-          rxMeta: "HTTP 200 OK (Ceragon Siklu Firmware)",
-          rxCode: JSON.stringify({
-            "status": "SUCCESS",
-            "commit-status": "APPLIED_TO_HARDWARE",
-            "node_name": "ctu-96",
-            "message": "Phased array beamforming tuned to 64.8 GHz. ACM floor clamped to MCS >= 2 without link interruption."
-          }, null, 2),
-          digest: "Physical actuation complete! TeraFlowSDN pushed a candidate RESTCONF PATCH to the physical Ceragon MH-T261 (`ctu-96`) on `192.168.1.225`. The Terragraph V-band phased array retuned its carrier frequency to 64.8 GHz and clamped ACM floor >= MCS 2.",
-          latency: 2.10,
-          queue: 18,
-          loss: 0.5,
-          freq: "64.80 GHz",
-          mcs: "MCS 4 (Recovering)",
-          rssi: "-61.2 dBm / 19.8 dB",
-          temp: "61.5 °C",
-          log: "[Stage 5] ETSI TeraFlowSDN 2PC transaction committed! Actuated Ceragon MH-T261 (ctu-96) via RESTCONF."
-        },
-        7: {
-          title: "STAGE 7: 34-Node O-RAN Transport Mesh",
-          pill: "STAGE 7",
-          opType: "UPDATE: CSPF GRAPH",
-          status: "TOPOLOGY REBALANCED",
-          host: "Context: admin / Topology: admin",
-          std: "O-RAN Transport WG9 / TI-LFA Fast Rerouting",
-          models: "CSPF Multi-Constrained Routing Graph, Strict Priority Queueing",
-          txMeta: "Topology Path Rebalance Notification",
-          txCode: JSON.stringify({
-            "action": "REBALANCE_TOPOLOGY_GRAPH",
-            "node_id": "ceragon-mh-t261-ctu-96",
-            "allocated_slice_bandwidth_mbps": 2000,
-            "queue_discipline": "STRICT_PRIORITY_URLLC"
-          }, null, 2),
-          rxMeta: "Topology Graph Updated",
-          rxCode: JSON.stringify({
-            "status": "TOPOLOGY_REBALANCED",
-            "affected_links": 34,
-            "alternate_paths_available": 3,
-            "failover_latency_budget_ms": 12.5
-          }, null, 2),
-          digest: "The 34-node O-RAN transport mesh updates its forwarding tables, aligning traffic engineering paths with the updated link capacity and guaranteeing strict priority for the URLLC slice across optical and wireless links.",
-          latency: 1.40,
-          queue: 12,
-          loss: 0.0,
-          freq: "64.80 GHz",
-          mcs: "MCS 4",
-          rssi: "-61.2 dBm / 19.8 dB",
-          temp: "61.5 °C",
-          log: "[Stage 5] 34-Node O-RAN transport mesh rebalanced: Strict-priority queueing applied."
-        },
-        8: {
-          title: "STAGE 8: Southbound Telemetry Sync & Closed-Loop Verify",
-          pill: "STAGE 8",
-          opType: "READ: TELEMETRY VERIFY",
-          status: "SLA HONORED (100%)",
-          host: "Background Telemetry Daemon (1s Interval)",
-          std: "ITU-T Y.3090 Twin Data Plane / RFC 8040 Operational Ingest",
-          models: "EWMA Telemetry Filter, RSL/SNR Calibration, Closed-Loop Verification",
-          txMeta: "GET /restconf/ds/ietf-datastores:operational",
-          txCode: "GET /restconf/ds/ietf-datastores:operational HTTP/1.1\nHost: 192.168.1.225\nAuthorization: Basic YWRtaW46YWRtaW4=",
-          rxMeta: "Live Hardware Operational Metrics",
-          rxCode: JSON.stringify({
-            "measured_latency_ms": 1.12,
-            "active_mcs": 4,
-            "rssi_dbm": -61.2,
-            "snr_db": 19.8,
-            "queue_depth_packets": 8,
-            "packet_loss_rate": 0.0,
-            "temperature_c": 61.5,
-            "sla_verdict": "HONORED",
-            "headroom_ms": "+0.38 ms under SLA limit (1.50 ms)",
-            "total_turnaround_time_ms": 2264.54
-          }, null, 2),
-          digest: "🏆 The closed loop is successfully verified! Operational telemetry from physical Ceragon hardware shows measured round-trip latency has dropped to 1.12 ms (well under the 1.50 ms SLA limit). Queue backlog cleared to 8 packets, packet loss is 0.00%, and the twin is synchronized.",
-          latency: 1.12,
-          queue: 8,
-          loss: 0.0,
-          freq: "64.80 GHz",
-          mcs: "MCS 4 (Hardened)",
-          rssi: "-61.2 dBm / 19.8 dB",
-          temp: "61.5 °C",
-          log: "🏆 Closed-Loop Success: Latency reduced to 1.12 ms (SLA Averted: true). Total time: 2264.54 ms"
-        }
-      }
-    };
+    function switchMainTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-simulation').classList.add('hidden');
+      document.getElementById('view-tfs-internals').classList.add('hidden');
+      document.getElementById('view-closed-loop').classList.add('hidden');
 
-    // Generic fallback builder for other scenarios
-    function getStageInfo(stageNum) {
-      if (stageData[currentScenario] && stageData[currentScenario][stageNum]) {
-        return stageData[currentScenario][stageNum];
+      if (tab === 'simulation') {
+        document.getElementById('tab-btn-sim').classList.add('active');
+        document.getElementById('view-simulation').classList.remove('hidden');
+      } else if (tab === 'tfs-internals') {
+        document.getElementById('tab-btn-tfs').classList.add('active');
+        document.getElementById('view-tfs-internals').classList.remove('hidden');
+        refreshTfsInternals();
+      } else if (tab === 'closed-loop') {
+        document.getElementById('tab-btn-loop').classList.add('active');
+        document.getElementById('view-closed-loop').classList.remove('hidden');
       }
-      // Fallback based on stageData.channel_degradation
-      const base = stageData.channel_degradation[stageNum];
-      if (currentScenario === 'traffic_surge') {
-        const copy = JSON.parse(JSON.stringify(base));
-        if (stageNum === 3) {
-          copy.digest = "NS-3 discrete simulation models a 3.5x multi-gigabit traffic burst during a stadium event. Queue backlog grows to 48 packets, latency hits 3.74 ms (> 1.5 ms threshold), creating bufferbloat!";
-          copy.latency = 3.74;
-          copy.queue = 48;
-          copy.loss = 3.8;
-          copy.log = "[Stage 3] NS-3 discrete simulation finished: Predicted Latency 3.74 ms (BREACH PREDICTED)";
-        } else if (stageNum >= 6) {
-          copy.digest = "🏆 Dynamic QoS Slicing successfully committed! Transport queues reallocated with strict priority, dropping latency to 0.88 ms.";
-          copy.latency = 0.88;
-          copy.queue = 8;
-          copy.loss = 0.0;
-          copy.log = "🏆 Closed-Loop Success: Latency reduced to 0.88 ms (SLA Averted: true). Total time: 1619.82 ms";
-        }
-        return copy;
-      }
-      return base;
     }
 
-    // Inspect & Highlight a Stage
-    function inspectFlowStage(stageNum) {
-      activeStage = stageNum;
-      const data = getStageInfo(stageNum);
-      if (!data) return;
+    // ═════════════════════════════════════════════════════════════════════════
+    // DISCRETE SIMULATION PLAYBACK (NETANIM CANVAS ENGINE)
+    // ═════════════════════════════════════════════════════════════════════════
+    function toggleSimPlayback() {
+      if (isSimPlaying) {
+        pauseSimPlayback();
+      } else {
+        startSimPlayback();
+      }
+    }
 
-      // Update Inspector Panel Elements
-      document.getElementById('insp-stage-pill').textContent = data.pill;
-      document.getElementById('insp-stage').textContent = data.title;
-      document.getElementById('insp-op-type').textContent = data.opType;
-      document.getElementById('insp-status').textContent = `STATUS: ${data.status}`;
-      document.getElementById('insp-host').textContent = data.host;
-      document.getElementById('insp-std').textContent = data.std;
-      document.getElementById('insp-models').textContent = data.models;
+    function startSimPlayback() {
+      if (discreteEvents.length === 0) {
+        runRealDiscreteSim();
+        return;
+      }
+      isSimPlaying = true;
+      document.getElementById('vcr-play-icon').textContent = '⏸';
+      lastAnimTime = performance.now();
+      animFrameId = requestAnimationFrame(animTick);
+    }
 
-      document.getElementById('insp-tx-meta').textContent = data.txMeta;
-      document.getElementById('insp-tx-code').querySelector('code').textContent = data.txCode;
+    function pauseSimPlayback() {
+      isSimPlaying = false;
+      document.getElementById('vcr-play-icon').textContent = '▶';
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+    }
 
-      document.getElementById('insp-rx-meta').textContent = data.rxMeta;
-      document.getElementById('insp-rx-code').querySelector('code').textContent = data.rxCode;
+    function resetSimTime() {
+      pauseSimPlayback();
+      simCurrentTime = 0.0;
+      updateSimView(simCurrentTime);
+    }
 
-      document.getElementById('insp-digest').textContent = data.digest;
+    function stepSimTime(deltaSec) {
+      pauseSimPlayback();
+      simCurrentTime = Math.max(0.0, Math.min(simMaxTime, simCurrentTime + deltaSec));
+      updateSimView(simCurrentTime);
+    }
 
-      // Update Stepper Badge
-      document.getElementById('active-step-badge').textContent = `${stageNum} / 8: ${data.pill}`;
+    function setSimSpeed(speed, btn) {
+      simSpeed = speed;
+      document.querySelectorAll('.speed-btn').forEach(b => {
+        b.className = "speed-btn px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300";
+      });
+      btn.className = "speed-btn px-2 py-0.5 rounded text-[10px] font-mono bg-purple-600 text-white font-bold";
+    }
 
-      // Update Gauges
-      updateGauges(data);
+    function onScrubberInput(val) {
+      simCurrentTime = val;
+      updateSimView(simCurrentTime);
+    }
 
-      // Move particle in SVG
-      const c = nodeCoords[stageNum];
-      const p = document.getElementById('flow-particle');
-      if (p && c) {
-        p.setAttribute('cx', c.x);
-        p.setAttribute('cy', c.y);
-        p.classList.remove('opacity-0');
+    function animTick(now) {
+      if (!isSimPlaying) return;
+      const elapsedWallSec = (now - lastAnimTime) / 1000.0;
+      lastAnimTime = now;
+
+      simCurrentTime += elapsedWallSec * simSpeed;
+      if (simCurrentTime >= simMaxTime) {
+        simCurrentTime = simMaxTime;
+        updateSimView(simCurrentTime);
+        pauseSimPlayback();
+        return;
       }
 
-      // Visual Node Styling in SVG
-      for (let i = 1; i <= 8; i++) {
-        const grp = document.getElementById(`node-grp-${i}`);
-        if (!grp) continue;
-        grp.classList.remove('node-active', 'node-completed', 'node-warning');
+      updateSimView(simCurrentTime);
+      animFrameId = requestAnimationFrame(animTick);
+    }
 
-        if (i < stageNum) {
-          grp.classList.add('node-completed');
-        } else if (i === stageNum) {
-          if (data.status.includes('BREACH')) {
-            grp.classList.add('node-warning');
-          } else {
-            grp.classList.add('node-active');
+    function updateSimView(t) {
+      // 1. Update Scrubber & Clock Readout
+      document.getElementById('sim-scrubber').value = t.toFixed(4);
+      document.getElementById('sim-clock-display').textContent = `${t.toFixed(6)} s`;
+
+      // 2. Compute Active Queue Depth & Drops at Ceragon Node 0
+      let activeQDepth = 0;
+      let activeBand0 = 0;
+      let activeBand1 = 0;
+      let recentDrop = false;
+
+      // Find events up to time t
+      let pastEvents = discreteEvents.filter(e => e.t <= t);
+      if (pastEvents.length > 0) {
+        const lastEv = pastEvents[pastEvents.length - 1];
+        activeQDepth = lastEv.q_depth || 0;
+        
+        // Count un-dequeued packets in window
+        pastEvents.forEach(e => {
+          if (e.node === "C0" && e.event === "DROP" && (t - e.t) < 0.25) {
+            recentDrop = true;
           }
-        }
+        });
       }
 
-      // Log to terminal
-      if (data.log) {
-        log(data.log, stageNum === 3 && data.status.includes('BREACH') ? 'text-red-400 font-bold' : stageNum === 8 ? 'text-purple-400 font-bold' : 'text-cyan-300');
-      }
-    }
-
-    function updateGauges(data) {
-      // Latency Bar
-      const latVal = data.latency;
-      document.getElementById('gauge-lat-val').textContent = `${latVal.toFixed(2)} ms`;
-      const latBar = document.getElementById('gauge-lat-bar');
-      const pct = Math.min(100, Math.max(2, (latVal / 10.0) * 100));
-      latBar.style.width = `${pct}%`;
-
-      const slaBadge = document.getElementById('gauge-sla-badge');
-      if (latVal > 1.5) {
-        latBar.className = "h-full bg-gradient-to-r from-amber-500 to-red-500 transition-all duration-700 rounded-full";
-        document.getElementById('gauge-lat-val').className = "text-xl font-bold font-mono text-red-400 animate-pulse";
-        slaBadge.textContent = `🚨 BREACH: +${(latVal - 1.5).toFixed(2)} ms`;
-        slaBadge.className = "font-mono text-red-400 font-bold px-2 py-0.5 rounded bg-red-500/10";
-      } else {
-        latBar.className = "h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-700 rounded-full";
-        document.getElementById('gauge-lat-val').className = "text-xl font-bold font-mono text-emerald-400";
-        slaBadge.textContent = `✅ SLA: -${(1.5 - latVal).toFixed(2)} ms headroom`;
-        slaBadge.className = "font-mono text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10";
-      }
-
-      // Queue & Loss
-      document.getElementById('gauge-queue-val').textContent = `${data.queue} pkts`;
-      const qPct = Math.min(100, (data.queue / 70) * 100);
-      document.getElementById('gauge-queue-bar').style.width = `${qPct}%`;
-      document.getElementById('gauge-loss-val').textContent = `${data.loss.toFixed(2)} %`;
-      document.getElementById('gauge-loss-val').className = data.loss > 0 ? "font-mono text-red-400 text-sm mt-1 block" : "font-mono text-emerald-400 text-sm mt-1 block";
-
-      // Hardware Cards
-      document.getElementById('hw-freq-val').textContent = data.freq;
-      document.getElementById('hw-mcs-val').textContent = data.mcs;
-      document.getElementById('hw-rssi-val').textContent = data.rssi;
-      document.getElementById('hw-temp-val').textContent = data.temp;
-    }
-
-    // Playback Controls
-    function togglePlayFlow() {
-      if (isPlaying) {
-        pauseFlow();
-      } else {
-        startPlayFlow();
-      }
-    }
-
-    function startPlayFlow() {
-      isPlaying = true;
-      document.getElementById('btn-play-icon').textContent = "⏸";
-      document.getElementById('btn-play-text').textContent = "Pause Flow";
-      
-      log(`────────────────────────────────────────────────────────`, 'text-[var(--muted-foreground)]');
-      log(`🚀 INITIATING CROSS-REPO DIGITAL TWIN CLOSED LOOP`, 'text-purple-400 font-bold');
-      log(`Intent: "Ensure URLLC latency < 1.5ms and availability > 99.999% during adverse conditions"`, 'text-cyan-400');
-
-      if (activeStage >= 8) {
-        activeStage = 1;
-      }
-
-      inspectFlowStage(activeStage);
-
-      playInterval = setInterval(() => {
-        if (activeStage < 8) {
-          activeStage++;
-          inspectFlowStage(activeStage);
+      // Update 10 Queue Slots in SVG
+      const filledSlots = Math.min(10, Math.ceil((activeQDepth / 150) * 10));
+      for (let s = 0; s < 10; s++) {
+        const slotEl = document.getElementById(`qslot-${s}`);
+        if (!slotEl) continue;
+        if (s < filledSlots) {
+          slotEl.setAttribute('fill', recentDrop ? '#ef4444' : (s < 2 ? '#34d399' : '#f59e0b'));
         } else {
-          pauseFlow();
+          slotEl.setAttribute('fill', '#1e293b');
         }
-      }, 1400);
-    }
-
-    function pauseFlow() {
-      isPlaying = false;
-      if (playInterval) clearInterval(playInterval);
-      document.getElementById('btn-play-icon').textContent = "▶";
-      document.getElementById('btn-play-text').textContent = "Resume Live Flow";
-    }
-
-    function stepNextStage() {
-      pauseFlow();
-      if (activeStage < 8) {
-        activeStage++;
-      } else {
-        activeStage = 1;
-      }
-      inspectFlowStage(activeStage);
-    }
-
-    function stepPrevStage() {
-      pauseFlow();
-      if (activeStage > 1) {
-        activeStage--;
-      } else {
-        activeStage = 8;
-      }
-      inspectFlowStage(activeStage);
-    }
-
-    function resetFlowBaseline() {
-      pauseFlow();
-      activeStage = 1;
-      inspectFlowStage(1);
-      log(`[Reset] Cross-repo closed-loop reset to Baseline State.`, 'text-[var(--muted-foreground)]');
-    }
-
-    let currentResolution = "auto";
-
-    const resolutionTiersData = {
-      macro_topology: {
-        key: "macro_topology",
-        tier_num: 1,
-        name: "Tier 1: Macro-Topology & Resilience",
-        fidelity: 25,
-        latency: 75,
-        scope: "34 / 34 Nodes (100% Graph)",
-        retained: ["link_status (UP/DOWN)", "propagation_delay_ms", "capacity_gbps", "adjacency_matrix", "ip_routing_fibs"],
-        pruned: ["rf_carrier_frequency", "rssi_snr_margins", "hitless_acm_mcs", "queue_byte_counters", "packet_payloads"],
-        modules: ["PointToPointHelper", "Ipv4GlobalRoutingHelper", "DropTailQueue"],
-        digest: "🎯 Governor: Preserves 100% of global routing graph for TI-LFA failover recalculation; abstracts RF physics and packet queues into idealized pipes."
-      },
-      queue_dynamics: {
-        key: "queue_dynamics",
-        tier_num: 2,
-        name: "Tier 2: Queue & Congestion Dynamics",
-        fidelity: 55,
-        latency: 350,
-        scope: "17 / 34 Nodes (50% Sub-Scope)",
-        retained: ["ingress_rate_mbps", "port_mtu_bytes", "queue_max_pkts", "queue_disc (CoDel/RED)", "burst_duration_ms"],
-        pruned: ["atmospheric_rain_rate", "rf_carrier_tuning", "atpc_power_boost", "remote_core_router_fibs"],
-        modules: ["DropTailQueueDisc", "CoDelQueueDisc", "OnOffApplication", "PacketSink"],
-        digest: "🎯 Governor: Isolates congested transport bottlenecks; accurately models microsecond packet queue backlog, bufferbloat, and drop probabilities."
-      },
-      physical_rf: {
-        key: "physical_rf",
-        tier_num: 3,
-        name: "Tier 3: Physical mmWave/Microwave Channel",
-        fidelity: 75,
-        latency: 650,
-        scope: "8 / 34 Nodes (25% Sub-Scope)",
-        retained: ["carrier_freq_ghz", "bandwidth_mhz", "rain_rate_mm_hr", "hop_distance_km", "active_mcs", "rssi_snr_db", "itu_r_p838_constants"],
-        pruned: ["multi_hop_core_ip", "unrelated_switch_ports", "optical_transponders", "unrelated_slices"],
-        modules: ["PointToPointChannel", "DynamicRateErrorModel", "PropagationLossModel", "AcmModulationController"],
-        digest: "🎯 Governor: Isolates the targeted wireless hop; computes exact ITU-R atmospheric absorption and SNR boundaries to evaluate hitless modulation downshift."
-      },
-      urllc_micro: {
-        key: "urllc_micro",
-        tier_num: 4,
-        name: "Tier 4: 5G/6G Slice SLA & Jitter Micro-Packet",
-        fidelity: 95,
-        latency: 1150,
-        scope: "24 / 34 Nodes (70% Sub-Scope)",
-        retained: ["5qi_slice_id", "packet_delay_budget_ms", "timestamps_us", "priority_queue_weights", "jitter_window_ms", "per_rate_threshold"],
-        pruned: ["non_critical_payloads", "long_term_weather", "device_internal_cpu_temps"],
-        modules: ["FlowMonitorHelper", "PriorityQueueDisc", "UdpEchoClientHelper", "HighResolutionTimer"],
-        digest: "🎯 Governor: Full microsecond discrete event simulation; tracks individual flow delay sums, p99 jitter, and packet delay budget compliance."
-      },
-      energy_macro: {
-        key: "energy_macro",
-        tier_num: 5,
-        name: "Tier 5: Green Telco & Energy Optimization",
-        fidelity: 20,
-        latency: 35,
-        scope: "10 / 34 Nodes (30% Sub-Scope)",
-        retained: ["transponder_power_draw_w", "sleep_power_w", "hourly_demand_mbps", "active_carrier_count"],
-        pruned: ["microsecond_timestamps", "packet_drops", "ber_curves", "rf_phase_noise"],
-        modules: ["SteadyStateCapacityChecker", "EnergyModelHelper"],
-        digest: "🎯 Governor: Continuous capacity pipes; evaluates power consumption vs aggregate traffic load in real time without discrete packet overhead."
-      }
-    };
-
-    const scenarioToAutoTier = {
-      channel_degradation: "physical_rf",
-      traffic_surge: "queue_dynamics",
-      link_failure: "macro_topology",
-      slice_admission: "urllc_micro",
-      energy_saving_sleep: "energy_macro"
-    };
-
-    function getEffectiveTierKey(scenarioKey, resolutionKey) {
-      if (resolutionKey && resolutionKey !== "auto") {
-        return resolutionKey;
-      }
-      return scenarioToAutoTier[scenarioKey] || "physical_rf";
-    }
-
-    function updateResolutionGovernorUI(scenarioKey, resolutionKey) {
-      const tierKey = getEffectiveTierKey(scenarioKey, resolutionKey);
-      const tier = resolutionTiersData[tierKey];
-      if (!tier) return;
-
-      const isAuto = (!resolutionKey || resolutionKey === "auto");
-      const badgeText = isAuto ? `${tier.fidelity}% (Auto-Governed)` : `${tier.fidelity}% (Manual Override)`;
-
-      const elBadge = document.getElementById("res-fidelity-badge");
-      if (elBadge) {
-        elBadge.textContent = badgeText;
-        elBadge.className = isAuto
-          ? "font-mono text-[10px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20"
-          : "font-mono text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20";
       }
 
-      const elName = document.getElementById("res-tier-name");
-      if (elName) elName.textContent = tier.name;
+      const qTxt = document.getElementById('c0-qdepth-txt');
+      if (qTxt) qTxt.textContent = `Queue: ${activeQDepth} / 150 pkts`;
 
-      const elBar = document.getElementById("res-fidelity-bar");
-      if (elBar) elBar.style.width = `${tier.fidelity}%`;
-
-      const elScope = document.getElementById("res-graph-scope");
-      if (elScope) elScope.textContent = tier.scope;
-
-      const elLat = document.getElementById("res-est-latency");
-      if (elLat) elLat.textContent = `< ${tier.latency} ms`;
-
-      // Retained tags
-      const elRetained = document.getElementById("res-retained-tags");
-      if (elRetained) {
-        elRetained.innerHTML = tier.retained
-          .map(k => `<span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-mono text-[10px] border border-emerald-500/20">${k}</span>`)
-          .join("");
+      const dropTxt = document.getElementById('c0-drop-txt');
+      if (dropTxt) {
+        if (recentDrop) {
+          dropTxt.textContent = `🚨 TAIL-DROP DETECTED!`;
+          document.getElementById('c0-box').classList.add('drop-anim');
+        } else {
+          dropTxt.textContent = ``;
+          document.getElementById('c0-box').classList.remove('drop-anim');
+        }
       }
 
-      // Pruned tags
-      const elPruned = document.getElementById("res-pruned-tags");
-      if (elPruned) {
-        elPruned.innerHTML = tier.pruned
-          .map(k => `<span class="px-1.5 py-0.5 rounded bg-red-500/10 text-red-300/80 font-mono text-[10px] border border-red-500/20 line-through">${k}</span>`)
-          .join("");
-      }
+      // 3. Render In-Flight Dynamic Packets on Physical Links
+      renderInFlightPackets(t);
 
-      // Modules tags
-      const elModules = document.getElementById("res-modules-tags");
-      if (elModules) {
-        elModules.innerHTML = tier.modules
-          .map(m => `<span class="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 font-mono text-[10px] border border-purple-500/20">${m}</span>`)
-          .join("");
-      }
-
-      // Digest
-      const elDigest = document.getElementById("res-digest");
-      if (elDigest) {
-        elDigest.textContent = tier.digest;
-      }
+      // 4. Update Event Table & Highlight Active Row
+      highlightTraceRow(pastEvents.length - 1);
     }
 
-    function onResolutionSelectChange(val) {
-      currentResolution = val;
-      const effectiveTier = getEffectiveTierKey(currentScenario, currentResolution);
-      const tier = resolutionTiersData[effectiveTier];
-      log(`🎯 Resolution Governor update: [${val.toUpperCase()}] => Activated ${tier.name} (${tier.fidelity}% fidelity, ${tier.scope})`, 'text-purple-300 font-bold');
-      updateResolutionGovernorUI(currentScenario, currentResolution);
-    }
+    function renderInFlightPackets(t) {
+      const layer = document.getElementById('dynamic-packets-layer');
+      if (!layer) return;
+      layer.innerHTML = '';
 
-    function onScenarioSelectChange(val) {
-      currentScenario = val;
-      log(`Switched simulation scenario domain: [${val.toUpperCase()}]`, 'text-cyan-400 font-bold');
-      updateResolutionGovernorUI(currentScenario, currentResolution);
-      inspectFlowStage(activeStage);
-    }
+      // A packet is in transit if its transmission began <= t and completes >= t
+      discreteEvents.forEach(ev => {
+        if (ev.event === "TX" || ev.event === "DEQUEUE") {
+          const tStart = ev.t;
+          // Approximate transit duration based on link
+          const duration = (ev.node === "STA0" || ev.node === "STA1") ? 0.000068 : 0.000150;
+          const tEnd = tStart + duration;
 
-    function log(msg, color = 'text-cyan-300') {
-      const t = document.getElementById('term-log');
-      const line = document.createElement('div');
-      line.className = color;
-      const ts = new Date().toLocaleTimeString();
-      line.textContent = `[${ts}] ${msg}`;
-      t.appendChild(line);
-      t.scrollTop = t.scrollHeight;
-    }
+          if (t >= tStart && t <= tEnd) {
+            const alpha = (t - tStart) / duration;
+            const from = NODE_COORDS[ev.node];
+            const to = NODE_COORDS[ev.peer] || NODE_COORDS["C1"];
 
-    function clearTerminal() {
-      const t = document.getElementById('term-log');
-      t.innerHTML = `<div class="text-[var(--muted-foreground)]">Terminal cleared. Ready for next loop.</div>`;
-    }
+            if (from && to) {
+              const curX = from.x + alpha * (to.x - from.x);
+              const curY = from.y + alpha * (to.y - from.y);
 
-    async function checkDeploymentProfile() {
-      try {
-        const res = await fetch("/api/v1/digital-twin/status");
-        if (res.ok) {
-          const data = await res.json();
-          const dep = data.deployment;
-          const badge = document.getElementById("profile-indicator-badge");
-          if (badge && dep) {
-            if (dep.is_standalone) {
-              badge.textContent = "● Mode: Standalone Sandbox (0 Dependencies)";
-              badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
-            } else {
-              badge.textContent = `● Mode: ${dep.active_profile.toUpperCase()} (TFS :8088 | MH-T261 | cersrv-029)`;
-              badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30";
+              const isTsn = (ev.flow === "TSN");
+              const fill = isTsn ? "#34d399" : "#fbbf24";
+              const r = isTsn ? 5 : 6;
+
+              const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+              const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              circle.setAttribute("cx", curX);
+              circle.setAttribute("cy", curY);
+              circle.setAttribute("r", r);
+              circle.setAttribute("fill", fill);
+              circle.setAttribute("filter", "drop-shadow(0 0 6px " + fill + ")");
+
+              const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+              text.setAttribute("x", curX + 8);
+              text.setAttribute("y", curY - 6);
+              text.setAttribute("fill", fill);
+              text.setAttribute("font-size", "7.5");
+              text.setAttribute("font-family", "monospace");
+              text.textContent = `#${ev.pkt_id} (${ev.size}B)`;
+
+              g.appendChild(circle);
+              g.appendChild(text);
+              layer.appendChild(g);
             }
           }
         }
-      } catch (e) {
-        // Fallback for static viewing
-        const badge = document.getElementById("profile-indicator-badge");
-        if (badge) {
-          badge.textContent = "● Standalone Static Mode";
-          badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
+      });
+    }
+
+    function highlightTraceRow(idx) {
+      document.querySelectorAll('#trace-table-body tr').forEach((tr, i) => {
+        if (i === idx) {
+          tr.className = "bg-purple-900/40 text-purple-200 font-bold border-l-4 border-purple-400";
+          tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          tr.className = "hover:bg-slate-800/40 transition-colors";
         }
-      }
+      });
     }
 
-    // =====================================================================
-    // TSN CO-SIMULATION ENGINE & VISUALIZATION
-    // =====================================================================
-    let tsnAnimId = null;
-    let tsnPacketProgress = 0.0;
-    let bePacketProgress = 0.0;
+    // ═════════════════════════════════════════════════════════════════════════
+    // REAL NS-3 SIMULATION EXECUTION API CALL
+    // ═════════════════════════════════════════════════════════════════════════
+    async function runRealDiscreteSim() {
+      const btn = document.getElementById('btn-trigger-real-sim');
+      const btnText = document.getElementById('btn-sim-text');
+      const btnIcon = document.getElementById('btn-sim-icon');
 
-    function initTsnPacketAnimations() {
-      const tsnDot = document.getElementById('tsn-packet-dot');
-      const beDot = document.getElementById('be-packet-dot');
-      if (!tsnDot || !beDot) return;
-
-      const tsnWaypoints = [
-        {x: 85, y: 65},
-        {x: 255, y: 65},
-        {x: 430, y: 140},
-        {x: 625, y: 140},
-        {x: 785, y: 140},
-        {x: 935, y: 140},
-        {x: 1050, y: 140}
-      ];
-
-      const beWaypoints = [
-        {x: 85, y: 215},
-        {x: 255, y: 215},
-        {x: 430, y: 140},
-        {x: 625, y: 140},
-        {x: 785, y: 140},
-        {x: 935, y: 140},
-        {x: 1050, y: 140}
-      ];
-
-      function getInterpolatedPoint(pts, t) {
-        const totalSegments = pts.length - 1;
-        const segIdx = Math.min(totalSegments - 1, Math.floor(t * totalSegments));
-        const segT = (t * totalSegments) - segIdx;
-        const p1 = pts[segIdx];
-        const p2 = pts[segIdx + 1];
-        return {
-          x: p1.x + (p2.x - p1.x) * segT,
-          y: p1.y + (p2.y - p1.y) * segT
-        };
-      }
-
-      function animatePackets() {
-        tsnPacketProgress = (tsnPacketProgress + 0.007) % 1.0;
-        bePacketProgress = (bePacketProgress + 0.005) % 1.0;
-
-        const ptTsn = getInterpolatedPoint(tsnWaypoints, tsnPacketProgress);
-        tsnDot.setAttribute('cx', ptTsn.x);
-        tsnDot.setAttribute('cy', ptTsn.y);
-
-        const ptBe = getInterpolatedPoint(beWaypoints, bePacketProgress);
-        beDot.setAttribute('cx', ptBe.x);
-        beDot.setAttribute('cy', ptBe.y);
-
-        tsnAnimId = requestAnimationFrame(animatePackets);
-      }
-
-      animatePackets();
-    }
-
-    async function executeTsnSimulation() {
-      const btn = document.getElementById('btn-run-tsn-sim');
-      const btnIcon = document.getElementById('tsn-btn-icon');
-      const btnText = document.getElementById('tsn-btn-text');
-      const pert = document.getElementById('tsn-perturbation-select').value;
-      const qos = (document.getElementById('tsn-qos-select').value === "true");
-
+      btnText.textContent = "Executing NS-3 on cersrv-029...";
+      btnIcon.textContent = "⏳";
       btn.disabled = true;
-      btn.classList.add('opacity-75');
-      btnIcon.innerHTML = `<span class="inline-block animate-spin">⏳</span>`;
-      btnText.textContent = "Executing NS-3 on efid@cersrv-029...";
 
-      const startTime = performance.now();
-      log(`[TSN Initiated] Running discrete simulation on cersrv-029 (Perturbation: ${pert}, QoS: ${qos ? 'ENABLED' : 'DISABLED'})...`, 'text-cyan-400 font-bold');
+      const perturb = document.getElementById('sim-scenario-select').value;
+      const enableQos = document.getElementById('sim-qos-select').value === "true";
 
       try {
-        const payload = {
-          sim_time: 2.5,
-          perturbation: pert,
-          enable_tsn_qos: qos,
-          surge_multiplier: 3.5,
-          rain_loss_db: (pert === "rain_degradation" ? 22.0 : 0.0)
+        const res = await fetch('/api/v1/digital-twin/simulate-tsn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sim_time: 2.5,
+            perturbation: perturb,
+            enable_tsn_qos: enableQos,
+            surge_multiplier: 3.5,
+            rain_loss_db: 19.93
+          })
+        });
+        const data = await res.json();
+        
+        // Ingest discrete event trace
+        discreteEvents = data.discrete_packet_trace || [];
+        document.getElementById('trace-events-count-badge').textContent = `${discreteEvents.length} events loaded`;
+        
+        // Render events table
+        populateTraceTable(discreteEvents);
+
+        // Update Flow KPI Cards
+        updateKpiCards(data);
+
+        // Reset and auto-play
+        simCurrentTime = 0.0;
+        startSimPlayback();
+
+      } catch (err) {
+        console.error("Simulation dispatch failed:", err);
+      } finally {
+        btnText.textContent = "Run Real NS-3 Simulation";
+        btnIcon.textContent = "🚀";
+        btn.disabled = false;
+      }
+    }
+
+    function populateTraceTable(events) {
+      const tbody = document.getElementById('trace-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      events.forEach((ev, i) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition-colors cursor-pointer";
+        tr.onclick = () => {
+          simCurrentTime = ev.t;
+          updateSimView(simCurrentTime);
         };
 
-        const res = await fetch("/api/v1/digital-twin/simulate-tsn", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+        const isDrop = ev.event === "DROP";
+        const isTsn = ev.flow === "TSN";
+        const eventBadge = isDrop
+          ? `<span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold">DROP</span>`
+          : `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">${ev.event}</span>`;
+
+        const flowBadge = isTsn
+          ? `<span class="text-emerald-400 font-bold">TSN (URLLC)</span>`
+          : `<span class="text-amber-400">BEST_EFFORT</span>`;
+
+        tr.innerHTML = `
+          <td class="py-1.5 px-3 text-cyan-300">${ev.t.toFixed(6)}</td>
+          <td class="py-1.5 px-3 font-bold">${ev.node} &rarr; ${ev.peer}</td>
+          <td class="py-1.5 px-3">${eventBadge}</td>
+          <td class="py-1.5 px-3">${flowBadge}</td>
+          <td class="py-1.5 px-3 text-slate-400">#${ev.pkt_id}</td>
+          <td class="py-1.5 px-3">${ev.size} B</td>
+          <td class="py-1.5 px-3 text-purple-300 font-bold">${ev.q_depth}/150</td>
+          <td class="py-1.5 px-3 text-slate-300 text-[11px]">${ev.note}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateKpiCards(data) {
+      if (!data || !data.flows) return;
+      const tsn = data.flows.tsn_urllc;
+      const be = data.flows.best_effort_burst;
+
+      document.getElementById('kpi-tsn-lat').textContent = `${tsn.mean_delay_ms.toFixed(2)} ms`;
+      const pill = document.getElementById('kpi-tsn-sla-pill');
+      if (tsn.sla_breached) {
+        pill.textContent = "BREACH";
+        pill.className = "px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-red-500/20 text-red-400";
+        document.getElementById('kpi-tsn-lat').className = "text-xl font-bold font-mono text-red-400 animate-pulse";
+      } else {
+        pill.textContent = "PASS";
+        pill.className = "px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-emerald-500/20 text-emerald-300";
+        document.getElementById('kpi-tsn-lat').className = "text-xl font-bold font-mono text-emerald-400";
+      }
+
+      document.getElementById('kpi-tsn-jit').textContent = `${tsn.jitter_ms.toFixed(2)} ms`;
+      document.getElementById('kpi-tsn-pdr').textContent = `${(100 - tsn.packet_loss_pct).toFixed(2)}% PDR`;
+
+      if (data.ceragon_devices && data.ceragon_devices[0]) {
+        const c0 = data.ceragon_devices[0];
+        document.getElementById('kpi-c0-q0').textContent = `Band 0: ${c0.tsn_prio_queue_depth_pkts} pk`;
+        document.getElementById('kpi-c0-q1').textContent = `Band 1: ${c0.best_effort_queue_depth_pkts} pk`;
+        document.getElementById('kpi-c0-drops').textContent = `${c0.dropped_packets} Total Drops`;
+        document.getElementById('kpi-hop1-rate').textContent = c0.configured_rate;
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // TAB 2: TFS MICROSERVICES & DATASTORE DIFF REFRESH
+    // ═════════════════════════════════════════════════════════════════════════
+    async function refreshTfsInternals() {
+      try {
+        const [diffRes, wireRes] = await Promise.all([
+          fetch('/api/v1/digital-twin/datastore-diff'),
+          fetch('/api/v1/digital-twin/restconf-wire')
+        ]);
+        const diffData = await diffRes.json();
+        const wireData = await wireRes.json();
+
+        if (diffData.before_actuation) {
+          document.getElementById('code-datastore-before').textContent = JSON.stringify(diffData.before_actuation, null, 2);
+        }
+        if (diffData.after_actuation) {
+          document.getElementById('code-datastore-after').textContent = JSON.stringify(diffData.after_actuation, null, 2);
+        }
+
+        const wireWrap = document.getElementById('restconf-wire-container');
+        if (wireWrap && Array.isArray(wireData)) {
+          wireWrap.innerHTML = '';
+          wireData.forEach(tx => {
+            const item = document.createElement('div');
+            item.className = "p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs font-mono";
+            item.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="text-cyan-400 font-bold">${tx.phase} &mdash; ${tx.method} ${tx.url}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${tx.status_code === 200 || tx.status_code === 204 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">HTTP ${tx.status_code}</span>
+              </div>
+              <pre class="bg-black/80 p-2.5 rounded-lg text-[10px] text-slate-300 overflow-x-auto">${JSON.stringify(tx.request_body || tx.response_body, null, 2)}</pre>
+            `;
+            wireWrap.appendChild(item);
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load TFS internals:", e);
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // TAB 3: 5-STAGE CLOSED LOOP STEPPER
+    // ═════════════════════════════════════════════════════════════════════════
+    async function stepNextStage() {
+      const st = currentStage;
+      appendLoopLog(`[Stage ${st}] Executing...`, 'text-cyan-300');
+
+      try {
+        const res = await fetch('/api/v1/digital-twin/step-stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stage: st,
+            scenario_id: activeScenario
+          })
         });
+        const data = await res.json();
+        appendLoopLog(`[Stage ${st}] ${data.summary} (${data.elapsed_ms}ms)`, data.status === 'COMPLETED' ? 'text-yellow-400 font-bold' : 'text-emerald-400');
 
-        const elapsedMs = Math.round(performance.now() - startTime);
-        let data = null;
-
-        if (res.ok) {
-          data = await res.json();
-        } else {
-          log(`Warning: Local API returned ${res.status}. Using discrete fallback trace.`, 'text-yellow-400');
+        // Update Stage Badge
+        const b = document.getElementById(`badge-st-${st}`);
+        if (b) {
+          b.textContent = data.status;
+          b.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold";
         }
 
-        if (data) {
-          renderTsnResults(data, elapsedMs);
+        // If stage 3 finished, ingest simulation trace!
+        if (st === 3 && data.sim_results && data.sim_results.discrete_packet_trace) {
+          discreteEvents = data.sim_results.discrete_packet_trace;
+          populateTraceTable(discreteEvents);
+          updateKpiCards(data.sim_results);
         }
+
+        currentStage = (currentStage % 5) + 1;
+        document.getElementById('btn-next-num').textContent = currentStage;
+
       } catch (err) {
-        log(`Simulation error: ${err.message}`, 'text-red-400 font-bold');
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-75');
-        btnIcon.textContent = "🚀";
-        btnText.textContent = "Execute Real NS-3 TSN Simulation";
+        appendLoopLog(`[Stage ${st}] Error: ${err.message}`, 'text-red-400 font-bold');
       }
     }
 
-    function renderTsnResults(data, wallTimeMs) {
-      const flows = data.flows || {};
-      const tsn = flows.tsn_urllc || {};
-      const be = flows.best_effort_burst || {};
-      const devs = data.ceragon_devices || [];
-      const aps = data.wifi_access_points || [];
-      const verdict = data.verdict || {};
+    async function runEntireClosedLoop() {
+      appendLoopLog("════════════════════════════════════════════════════════════════", 'text-slate-500');
+      appendLoopLog("🚀 INITIATING CROSS-REPO DIGITAL TWIN CLOSED LOOP", 'text-purple-400 font-bold');
+      currentStage = 1;
+      for (let s = 1; s <= 5; s++) {
+        await stepNextStage();
+      }
+      appendLoopLog("🏆 Closed Loop Success: Autonomous Actuation Committed via TFS 2PC!", 'text-emerald-400 font-bold');
+    }
 
-      // 1. Latency & SLA
-      const latEl = document.getElementById('tsn-kpi-latency');
-      const slaBadge = document.getElementById('tsn-kpi-sla-badge');
-      const latProg = document.getElementById('tsn-lat-progress');
-      if (latEl && tsn.mean_delay_ms !== undefined) {
-        latEl.textContent = `${tsn.mean_delay_ms.toFixed(2)} ms`;
-        const pct = Math.min(100, (tsn.mean_delay_ms / 3.0) * 100);
-        if (latProg) latProg.style.width = `${pct}%`;
+    function appendLoopLog(msg, colorClass) {
+      const box = document.getElementById('closed-loop-log');
+      if (!box) return;
+      const d = document.createElement('div');
+      d.className = colorClass || "text-slate-300";
+      d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      box.appendChild(d);
+      box.scrollTop = box.scrollHeight;
+    }
 
-        if (tsn.sla_breached) {
-          latEl.className = "text-xl font-bold font-mono text-red-400";
-          slaBadge.textContent = "BREACH";
-          slaBadge.className = "px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-red-500/20 text-red-300";
-          if (latProg) latProg.className = "h-full bg-red-500 transition-all duration-500";
-        } else {
-          latEl.className = "text-xl font-bold font-mono text-emerald-400";
-          slaBadge.textContent = "PASS";
-          slaBadge.className = "px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-emerald-500/20 text-emerald-300";
-          if (latProg) latProg.className = "h-full bg-emerald-400 transition-all duration-500";
+    // Initialize System Status on Page Load
+    async function initSystem() {
+      try {
+        const res = await fetch('/api/v1/digital-twin/status');
+        const data = await res.json();
+        if (data.deployment) {
+          const badge = document.getElementById('profile-indicator-badge');
+          badge.textContent = `● [${data.deployment.active_profile.toUpperCase()}] ${data.deployment.mode}`;
+          if (data.deployment.is_standalone) {
+            badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30";
+          } else {
+            badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30";
+          }
         }
+      } catch (e) {
+        console.warn("Status fetch failed:", e);
       }
-
-      // 2. Jitter & PDR
-      const jitEl = document.getElementById('tsn-kpi-jitter');
-      const pdrEl = document.getElementById('tsn-kpi-pdr');
-      if (jitEl && tsn.jitter_ms !== undefined) {
-        jitEl.textContent = `${tsn.jitter_ms.toFixed(3)} ms`;
-      }
-      if (pdrEl && tsn.packet_loss_pct !== undefined) {
-        const pdrVal = (100.0 - tsn.packet_loss_pct).toFixed(1);
-        pdrEl.textContent = `${pdrVal}% PDR`;
-        pdrEl.className = (pdrVal >= 99.9) ? "text-[10px] font-bold font-mono text-emerald-400" : "text-[10px] font-bold font-mono text-red-400";
-      }
-
-      // 3. WiFi Contention
-      const contEl = document.getElementById('tsn-kpi-contention');
-      const ap0Cont = document.getElementById('tsn-ap0-contention');
-      const ap1Cont = document.getElementById('tsn-ap1-contention');
-      if (aps.length >= 2) {
-        if (contEl) contEl.textContent = `${aps[0].mean_contention_delay_us.toFixed(1)} \u03BCs`;
-        if (ap0Cont) ap0Cont.textContent = `Cont: ${aps[0].mean_contention_delay_us.toFixed(1)} \u03BCs`;
-        if (ap1Cont) ap1Cont.textContent = `Cont: ${aps[1].mean_contention_delay_us.toFixed(1)} \u03BCs`;
-      }
-
-      // 4. WiFi Airtime & Retries
-      const airEl = document.getElementById('tsn-kpi-airtime');
-      const retEl = document.getElementById('tsn-kpi-retry');
-      if (aps.length >= 2) {
-        if (airEl) airEl.textContent = `${aps[1].airtime_utilization_pct.toFixed(1)}%`;
-        if (retEl) retEl.textContent = `Retries: ${aps[1].retry_rate_pct.toFixed(1)}%`;
-      }
-
-      // 5. Queues
-      const q0El = document.getElementById('tsn-kpi-q0');
-      const q1El = document.getElementById('tsn-kpi-q1');
-      const dropsEl = document.getElementById('tsn-kpi-drops');
-      const n0q0 = document.getElementById('tsn-node0-q0');
-      const n0q1 = document.getElementById('tsn-node0-q1');
-      const n0qtxt = document.getElementById('tsn-node0-qtxt');
-      if (devs.length > 0) {
-        const d0 = devs[0];
-        if (q0El) q0El.textContent = `Q0: ${d0.tsn_prio_queue_depth_pkts} pk`;
-        if (q1El) q1El.textContent = `Q1: ${d0.best_effort_queue_depth_pkts} pk`;
-        if (dropsEl) dropsEl.textContent = `${d0.dropped_packets} Drops Total`;
-        if (n0qtxt) n0qtxt.textContent = `Q0: ${d0.tsn_prio_queue_depth_pkts} pk | Q1: ${d0.best_effort_queue_depth_pkts} pk`;
-        if (n0q0) n0q0.setAttribute('width', Math.min(40, d0.tsn_prio_queue_depth_pkts * 2));
-        if (n0q1) n0q1.setAttribute('width', Math.min(70, d0.best_effort_queue_depth_pkts * 0.5));
-      }
-
-      // 6. Engine status
-      const wallEl = document.getElementById('tsn-kpi-wallclock');
-      const execEl = document.getElementById('tsn-kpi-exec-time');
-      const engMode = document.getElementById('tsn-kpi-engine-mode');
-      if (wallEl) wallEl.textContent = `${data.wall_clock_elapsed_ms || wallTimeMs} ms`;
-      if (execEl) execEl.textContent = data.is_live_remote ? "Live Remote SSH" : "Discrete Simulator";
-      if (engMode) engMode.textContent = data.host || "efid@cersrv-029";
-
-      // 7. Console output
-      const cmdEl = document.getElementById('tsn-last-cmd');
-      const logEl = document.getElementById('tsn-console-log');
-      if (cmdEl && data.command_executed) {
-        cmdEl.textContent = data.command_executed;
-      }
-      if (logEl) {
-        const logContent = `[NS-3 DISCRETE SIMULATION COMPLETED]
-Engine: ${data.execution_engine} (${data.host})
-Simulated Time: ${data.sim_time_sec}s | Wall Clock Runtime: ${data.wall_clock_elapsed_ms || wallTimeMs}ms
-Perturbation: ${data.perturbation} | TSN QoS Priority: ${data.tsn_qos_enabled ? 'ENABLED' : 'DISABLED'}
---------------------------------------------------------------------------------
-Flow 1 (TSN URLLC 1ms): TX=${tsn.tx_packets}, RX=${tsn.rx_packets}, Lost=${tsn.lost_packets} (${tsn.packet_loss_pct}%), Latency=${tsn.mean_delay_ms}ms, Jitter=${tsn.jitter_ms}ms [${tsn.sla_breached ? 'SLA BREACH' : 'SLA MET'}]
-Flow 2 (Best Effort Burst): TX=${be.tx_packets}, RX=${be.rx_packets}, Lost=${be.lost_packets} (${be.packet_loss_pct}%), Latency=${be.mean_delay_ms}ms, Throughput=${be.throughput_mbps} Mbps
-Ceragon Links: Hop 1 Rate=${devs[0] ? devs[0].configured_rate : '1Gbps'} | Q0(TSN)=${devs[0] ? devs[0].tsn_prio_queue_depth_pkts : 0}pk | Q1(BE)=${devs[0] ? devs[0].best_effort_queue_depth_pkts : 0}pk
-WiFi APs: AC_VO Contention=${aps[0] ? aps[0].mean_contention_delay_us : 0}\u03BCs | AC_BE Contention=${aps[1] ? aps[1].mean_contention_delay_us : 0}\u03BCs | Airtime=${aps[1] ? aps[1].airtime_utilization_pct : 0}%
-Verdict: ${verdict.summary}`;
-        logEl.textContent = logContent;
-      }
-
-      log(`[NS-3 Completed] TSN Latency: ${tsn.mean_delay_ms}ms, Jitter: ${tsn.jitter_ms}ms, Queue0: ${devs[0] ? devs[0].tsn_prio_queue_depth_pkts : 0}pk (${verdict.status})`, tsn.sla_breached ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold');
+      // Trigger initial simulation load so the animator is ready immediately
+      runRealDiscreteSim();
     }
 
-    // Initialize on stage 1
-    window.addEventListener('DOMContentLoaded', () => {
-      checkDeploymentProfile();
-      updateResolutionGovernorUI(currentScenario, currentResolution);
-      inspectFlowStage(1);
-      initTsnPacketAnimations();
-    });
+    window.addEventListener('DOMContentLoaded', initSystem);
   </script>
-
 </body>
 </html>
