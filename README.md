@@ -171,6 +171,9 @@ tfs-ns3-digital-twin/
 ├── LICENSE                                # Apache 2.0 open-source license
 ├── requirements.txt                       # Dependencies (requests, matplotlib, numpy)
 ├── generate_figures.py                    # Scientific & architectural figure generator
+├── web_dashboard.py                       # Standalone Cross-Repo Web Dashboard Server (:9200)
+├── dashboard/                             # Interactive Web Dashboard frontend
+│   └── index.html                         # Full 5-stage closed-loop operational UI
 ├── figures/                               # Vector & raster diagram assets
 │   ├── digital_twin_mirror_concept.svg
 │   ├── generic_telecom_simulation_taxonomy.svg
@@ -209,7 +212,14 @@ cd tfs-ns3-digital-twin
 pip install -r requirements.txt
 ```
 
-### 2. Run the Multi-Domain Digital Twin Demonstration
+### 2. Launch the Interactive Cross-Repo Web Dashboard
+Launches the standalone operations dashboard orchestrating Declarative Intent, NS-3 on `efid@cersrv-029`, TFS at `http://localhost:8088`, Decision Engine, and Ceragon hardware at `192.168.1.225:80`:
+```bash
+python web_dashboard.py 9200
+```
+*Open `http://localhost:9200/` in your browser (or navigate to `http://localhost:5000/` in CER-Intent and select the **🔮 Cross-Repo Digital Twin** tab).*
+
+### 3. Run the Multi-Domain Digital Twin Terminal Demonstration
 Executes all 5 simulation scenarios, CAPIF discovery, TMF intent ingestion, and TFS 2PC actuation:
 ```bash
 python demo_telecom_digital_twin.py
