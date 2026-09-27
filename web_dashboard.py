@@ -48,6 +48,7 @@ from simulation_resolution_governor import (
     ResolutionTier,
     TIER_SPECIFICATIONS,
 )
+from tsn_simulation_runner import TSNSimulationRunner
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [Dashboard]: %(message)s")
@@ -274,6 +275,42 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        # Dedicated TSN Co-Simulation Endpoint (WiFi APs + 4 Ceragon Devices)
+        if self.path == "/api/v1/digital-twin/simulate-tsn":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            body = json.loads(post_body) if post_body else {}
+
+            sim_time = float(body.get("sim_time", 2.0))
+            perturbation = body.get("perturbation", "none")
+            enable_tsn_qos = bool(body.get("enable_tsn_qos", True))
+            surge_multiplier = float(body.get("surge_multiplier", 1.0))
+            rain_loss_db = float(body.get("rain_loss_db", 0.0))
+            hop1_rate = body.get("hop1_rate", "1Gbps")
+            hop2_rate = body.get("hop2_rate", "10Gbps")
+
+            runner = TSNSimulationRunner(
+                host="efid@cersrv-029",
+                ns3_dir="/home/efid/ns3-dev"
+            )
+            use_remote = not GLOBAL_CONFIG.use_mock_ns3
+            results = runner.run_tsn_simulation(
+                sim_time=sim_time,
+                perturbation=perturbation,
+                enable_tsn_qos=enable_tsn_qos,
+                surge_multiplier=surge_multiplier,
+                rain_loss_db=rain_loss_db,
+                hop1_rate=hop1_rate,
+                hop2_rate=hop2_rate,
+                use_remote=use_remote
+            )
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(results).encode("utf-8"))
+            return
+
         # 4. Multi-Resolution End-to-End Closed-Loop Execution
         if self.path == "/api/v1/digital-twin/run-loop":
             content_len = int(self.headers.get("Content-Length", 0))
@@ -295,8 +332,34 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                 target_device_uuid=GLOBAL_CONFIG.device_uuid
             )
 
+            # Check if this is the TSN + WiFi Co-Simulation Scenario
+            tsn_meta = None
+            if scenario_id == "tsn_ceragon_wifi":
+                runner = TSNSimulationRunner(host="efid@cersrv-029", ns3_dir="/home/efid/ns3-dev")
+                use_remote = not GLOBAL_CONFIG.use_mock_ns3
+                tsn_results = runner.run_tsn_simulation(
+                    sim_time=float(custom_params.get("sim_time", 2.0)),
+                    perturbation=custom_params.get("perturbation", "traffic_surge"),
+                    enable_tsn_qos=bool(custom_params.get("enable_tsn_qos", True)),
+                    surge_multiplier=float(custom_params.get("surge_multiplier", 3.0)),
+                    rain_loss_db=float(custom_params.get("rain_loss_db", 12.0)),
+                    use_remote=use_remote
+                )
+                tsn_meta = tsn_results
+                pred_latency = tsn_results["flows"]["tsn_urllc"]["mean_delay_ms"]
+                pred_tp = tsn_results["flows"]["best_effort_burst"]["throughput_mbps"]
+                pred_loss = tsn_results["flows"]["tsn_urllc"]["packet_loss_pct"] / 100.0
+                pred_q = tsn_results["ceragon_devices"][0]["best_effort_queue_depth_pkts"]
+                sla_breach = tsn_results["flows"]["tsn_urllc"]["sla_breached"]
+                recommended_action = "TSN_PRIORITY_SCHEDULE_&_EDCA_RETUNE"
+                proposed_rules = [
+                    {"type": "TSN_8021Q_PCP_CLASSIFIER", "pcp_value": 6, "target": "ctu-96"},
+                    {"type": "EDCA_AC_VO_RESERVATION", "cw_min": 3, "cw_max": 7, "aifs": 2}
+                ]
+                post_lat = 0.88
+
             # Domain Specific Simulation Model
-            if scenario_id == "traffic_surge":
+            elif scenario_id == "traffic_surge":
                 burst = custom_params.get("burst_factor", 3.5)
                 pred_latency = round(0.65 * (1.0 + (burst - 1.0) * 1.9), 2)
                 pred_tp = 980.0
@@ -403,6 +466,9 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                     "live_actuation": not (GLOBAL_CONFIG.use_mock_hw and GLOBAL_CONFIG.use_mock_tfs)
                 }
             }
+            if tsn_meta:
+                res["tsn_simulation"] = tsn_meta
+
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
