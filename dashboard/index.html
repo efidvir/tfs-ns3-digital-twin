@@ -174,15 +174,29 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <label class="text-xs text-[var(--muted-foreground)]">Scenario:</label>
-        <select id="quick-scenario-select" onchange="onScenarioSelectChange(this.value)" class="bg-[var(--background)] border border-[var(--border)] text-xs rounded-xl px-3 py-2 text-[var(--foreground)] outline-none focus:border-purple-500 font-mono">
-          <option value="channel_degradation">🌧️ Channel Degradation (Rain Fade & ACM Collapse)</option>
-          <option value="traffic_surge">📈 Traffic Surge (3.5x Burst & Bufferbloat)</option>
-          <option value="link_failure">✂️ Fiber Link Cut (TI-LFA Fast Reroute)</option>
-          <option value="slice_admission">🧩 Slice Admission (URLLC Strict Priority)</option>
-          <option value="energy_saving_sleep">🍃 Green Telco Energy Saving (Carrier Standby)</option>
-        </select>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-[var(--muted-foreground)]">Scenario:</label>
+          <select id="quick-scenario-select" onchange="onScenarioSelectChange(this.value)" class="bg-[var(--background)] border border-[var(--border)] text-xs rounded-xl px-3 py-2 text-[var(--foreground)] outline-none focus:border-purple-500 font-mono">
+            <option value="channel_degradation">🌧️ Channel Degradation (Rain Fade & ACM Collapse)</option>
+            <option value="traffic_surge">📈 Traffic Surge (3.5x Burst & Bufferbloat)</option>
+            <option value="link_failure">✂️ Fiber Link Cut (TI-LFA Fast Reroute)</option>
+            <option value="slice_admission">🧩 Slice Admission (URLLC Strict Priority)</option>
+            <option value="energy_saving_sleep">🍃 Green Telco Energy Saving (Carrier Standby)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-cyan-400 font-bold flex items-center gap-1"><span>🎯</span> Resolution:</label>
+          <select id="quick-resolution-select" onchange="onResolutionSelectChange(this.value)" class="bg-[var(--background)] border border-cyan-500/40 text-xs rounded-xl px-3 py-2 text-cyan-300 outline-none focus:border-cyan-400 font-mono">
+            <option value="auto">⚡ Auto-Governed (By Scenario Goal)</option>
+            <option value="macro_topology">Tier 1: Macro-Topology (Fast Reroute)</option>
+            <option value="queue_dynamics">Tier 2: Queue Dynamics (Bufferbloat)</option>
+            <option value="physical_rf">Tier 3: Physical RF Wireless (Rain / ACM)</option>
+            <option value="urllc_micro">Tier 4: URLLC Micro-Packet (SLA PDB)</option>
+            <option value="energy_macro">Tier 5: Green Energy Macro (Carrier Sleep)</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -566,6 +580,69 @@
             <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)] flex items-center justify-between" id="gate-reserve">
               <span class="text-[var(--muted-foreground)] text-[11px]">URLLC Reserved Slice:</span>
               <span class="font-bold text-emerald-400 font-mono">PASS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resolution Governor & KPI Scoping Card -->
+        <div class="bg-[var(--card)] border border-cyan-500/30 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-[var(--border)] pb-2 text-xs">
+            <span class="font-bold text-cyan-400 flex items-center gap-1.5">
+              <span>🎯</span> Resolution &amp; Fidelity Scoping
+            </span>
+            <span id="res-fidelity-badge" class="font-mono text-[10px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">75% Fidelity</span>
+          </div>
+
+          <div class="space-y-2.5 text-xs">
+            <div>
+              <div class="flex justify-between items-baseline mb-1">
+                <span class="text-[var(--muted-foreground)]">Active Fidelity Tier:</span>
+                <strong id="res-tier-name" class="font-mono text-cyan-300 text-xs">Tier 3: Physical mmWave/Microwave Channel</strong>
+              </div>
+              <!-- Fidelity Bar -->
+              <div class="w-full bg-black/60 rounded-full h-2 overflow-hidden border border-[var(--border)]">
+                <div id="res-fidelity-bar" class="h-full bg-gradient-to-r from-purple-500 via-cyan-400 to-emerald-400 transition-all duration-500 rounded-full" style="width: 75%;"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+              <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
+                <span class="text-[var(--muted-foreground)] text-[10px] block">Graph Sub-Scope:</span>
+                <span id="res-graph-scope" class="text-emerald-400 font-bold">8 / 34 Nodes (25%)</span>
+              </div>
+              <div class="p-2 rounded bg-[var(--background)] border border-[var(--border)]">
+                <span class="text-[var(--muted-foreground)] text-[10px] block">Est. Compute Latency:</span>
+                <span id="res-est-latency" class="text-yellow-400 font-bold">&lt; 650 ms</span>
+              </div>
+            </div>
+
+            <!-- Retained vs Pruned KPIs tags -->
+            <div class="space-y-2 pt-1">
+              <div>
+                <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Retained In Simulation:</span>
+                <div id="res-retained-tags" class="flex flex-wrap gap-1 mt-1">
+                  <!-- Tag badges -->
+                </div>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-red-400/80 uppercase tracking-wider block">Pruned / Abstracted (Compute Saved):</span>
+                <div id="res-pruned-tags" class="flex flex-wrap gap-1 mt-1">
+                  <!-- Tag badges -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Active NS-3 C++ Modules -->
+            <div>
+              <span class="text-[10px] font-bold text-purple-300 uppercase tracking-wider block">Active NS-3 C++ Modules:</span>
+              <div id="res-modules-tags" class="flex flex-wrap gap-1 mt-1">
+                <!-- Tag badges -->
+              </div>
+            </div>
+
+            <!-- Governor Digest explanation -->
+            <div class="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-200 mt-2 font-sans leading-relaxed" id="res-digest">
+              🎯 Resolution Governor: Selected [Tier 3: Physical mmWave/Microwave Channel] (75% fidelity). Retained 9 critical KPIs for goal 'channel_degradation', pruning 4 non-essential metrics.
             </div>
           </div>
         </div>
@@ -1095,9 +1172,157 @@
       log(`[Reset] Cross-repo closed-loop reset to Baseline State.`, 'text-[var(--muted-foreground)]');
     }
 
+    let currentResolution = "auto";
+
+    const resolutionTiersData = {
+      macro_topology: {
+        key: "macro_topology",
+        tier_num: 1,
+        name: "Tier 1: Macro-Topology & Resilience",
+        fidelity: 25,
+        latency: 75,
+        scope: "34 / 34 Nodes (100% Graph)",
+        retained: ["link_status (UP/DOWN)", "propagation_delay_ms", "capacity_gbps", "adjacency_matrix", "ip_routing_fibs"],
+        pruned: ["rf_carrier_frequency", "rssi_snr_margins", "hitless_acm_mcs", "queue_byte_counters", "packet_payloads"],
+        modules: ["PointToPointHelper", "Ipv4GlobalRoutingHelper", "DropTailQueue"],
+        digest: "🎯 Governor: Preserves 100% of global routing graph for TI-LFA failover recalculation; abstracts RF physics and packet queues into idealized pipes."
+      },
+      queue_dynamics: {
+        key: "queue_dynamics",
+        tier_num: 2,
+        name: "Tier 2: Queue & Congestion Dynamics",
+        fidelity: 55,
+        latency: 350,
+        scope: "17 / 34 Nodes (50% Sub-Scope)",
+        retained: ["ingress_rate_mbps", "port_mtu_bytes", "queue_max_pkts", "queue_disc (CoDel/RED)", "burst_duration_ms"],
+        pruned: ["atmospheric_rain_rate", "rf_carrier_tuning", "atpc_power_boost", "remote_core_router_fibs"],
+        modules: ["DropTailQueueDisc", "CoDelQueueDisc", "OnOffApplication", "PacketSink"],
+        digest: "🎯 Governor: Isolates congested transport bottlenecks; accurately models microsecond packet queue backlog, bufferbloat, and drop probabilities."
+      },
+      physical_rf: {
+        key: "physical_rf",
+        tier_num: 3,
+        name: "Tier 3: Physical mmWave/Microwave Channel",
+        fidelity: 75,
+        latency: 650,
+        scope: "8 / 34 Nodes (25% Sub-Scope)",
+        retained: ["carrier_freq_ghz", "bandwidth_mhz", "rain_rate_mm_hr", "hop_distance_km", "active_mcs", "rssi_snr_db", "itu_r_p838_constants"],
+        pruned: ["multi_hop_core_ip", "unrelated_switch_ports", "optical_transponders", "unrelated_slices"],
+        modules: ["PointToPointChannel", "DynamicRateErrorModel", "PropagationLossModel", "AcmModulationController"],
+        digest: "🎯 Governor: Isolates the targeted wireless hop; computes exact ITU-R atmospheric absorption and SNR boundaries to evaluate hitless modulation downshift."
+      },
+      urllc_micro: {
+        key: "urllc_micro",
+        tier_num: 4,
+        name: "Tier 4: 5G/6G Slice SLA & Jitter Micro-Packet",
+        fidelity: 95,
+        latency: 1150,
+        scope: "24 / 34 Nodes (70% Sub-Scope)",
+        retained: ["5qi_slice_id", "packet_delay_budget_ms", "timestamps_us", "priority_queue_weights", "jitter_window_ms", "per_rate_threshold"],
+        pruned: ["non_critical_payloads", "long_term_weather", "device_internal_cpu_temps"],
+        modules: ["FlowMonitorHelper", "PriorityQueueDisc", "UdpEchoClientHelper", "HighResolutionTimer"],
+        digest: "🎯 Governor: Full microsecond discrete event simulation; tracks individual flow delay sums, p99 jitter, and packet delay budget compliance."
+      },
+      energy_macro: {
+        key: "energy_macro",
+        tier_num: 5,
+        name: "Tier 5: Green Telco & Energy Optimization",
+        fidelity: 20,
+        latency: 35,
+        scope: "10 / 34 Nodes (30% Sub-Scope)",
+        retained: ["transponder_power_draw_w", "sleep_power_w", "hourly_demand_mbps", "active_carrier_count"],
+        pruned: ["microsecond_timestamps", "packet_drops", "ber_curves", "rf_phase_noise"],
+        modules: ["SteadyStateCapacityChecker", "EnergyModelHelper"],
+        digest: "🎯 Governor: Continuous capacity pipes; evaluates power consumption vs aggregate traffic load in real time without discrete packet overhead."
+      }
+    };
+
+    const scenarioToAutoTier = {
+      channel_degradation: "physical_rf",
+      traffic_surge: "queue_dynamics",
+      link_failure: "macro_topology",
+      slice_admission: "urllc_micro",
+      energy_saving_sleep: "energy_macro"
+    };
+
+    function getEffectiveTierKey(scenarioKey, resolutionKey) {
+      if (resolutionKey && resolutionKey !== "auto") {
+        return resolutionKey;
+      }
+      return scenarioToAutoTier[scenarioKey] || "physical_rf";
+    }
+
+    function updateResolutionGovernorUI(scenarioKey, resolutionKey) {
+      const tierKey = getEffectiveTierKey(scenarioKey, resolutionKey);
+      const tier = resolutionTiersData[tierKey];
+      if (!tier) return;
+
+      const isAuto = (!resolutionKey || resolutionKey === "auto");
+      const badgeText = isAuto ? `${tier.fidelity}% (Auto-Governed)` : `${tier.fidelity}% (Manual Override)`;
+
+      const elBadge = document.getElementById("res-fidelity-badge");
+      if (elBadge) {
+        elBadge.textContent = badgeText;
+        elBadge.className = isAuto
+          ? "font-mono text-[10px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20"
+          : "font-mono text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20";
+      }
+
+      const elName = document.getElementById("res-tier-name");
+      if (elName) elName.textContent = tier.name;
+
+      const elBar = document.getElementById("res-fidelity-bar");
+      if (elBar) elBar.style.width = `${tier.fidelity}%`;
+
+      const elScope = document.getElementById("res-graph-scope");
+      if (elScope) elScope.textContent = tier.scope;
+
+      const elLat = document.getElementById("res-est-latency");
+      if (elLat) elLat.textContent = `< ${tier.latency} ms`;
+
+      // Retained tags
+      const elRetained = document.getElementById("res-retained-tags");
+      if (elRetained) {
+        elRetained.innerHTML = tier.retained
+          .map(k => `<span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-mono text-[10px] border border-emerald-500/20">${k}</span>`)
+          .join("");
+      }
+
+      // Pruned tags
+      const elPruned = document.getElementById("res-pruned-tags");
+      if (elPruned) {
+        elPruned.innerHTML = tier.pruned
+          .map(k => `<span class="px-1.5 py-0.5 rounded bg-red-500/10 text-red-300/80 font-mono text-[10px] border border-red-500/20 line-through">${k}</span>`)
+          .join("");
+      }
+
+      // Modules tags
+      const elModules = document.getElementById("res-modules-tags");
+      if (elModules) {
+        elModules.innerHTML = tier.modules
+          .map(m => `<span class="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 font-mono text-[10px] border border-purple-500/20">${m}</span>`)
+          .join("");
+      }
+
+      // Digest
+      const elDigest = document.getElementById("res-digest");
+      if (elDigest) {
+        elDigest.textContent = tier.digest;
+      }
+    }
+
+    function onResolutionSelectChange(val) {
+      currentResolution = val;
+      const effectiveTier = getEffectiveTierKey(currentScenario, currentResolution);
+      const tier = resolutionTiersData[effectiveTier];
+      log(`🎯 Resolution Governor update: [${val.toUpperCase()}] => Activated ${tier.name} (${tier.fidelity}% fidelity, ${tier.scope})`, 'text-purple-300 font-bold');
+      updateResolutionGovernorUI(currentScenario, currentResolution);
+    }
+
     function onScenarioSelectChange(val) {
       currentScenario = val;
       log(`Switched simulation scenario domain: [${val.toUpperCase()}]`, 'text-cyan-400 font-bold');
+      updateResolutionGovernorUI(currentScenario, currentResolution);
       inspectFlowStage(activeStage);
     }
 
@@ -1118,6 +1343,7 @@
 
     // Initialize on stage 1
     window.addEventListener('DOMContentLoaded', () => {
+      updateResolutionGovernorUI(currentScenario, currentResolution);
       inspectFlowStage(1);
     });
   </script>
