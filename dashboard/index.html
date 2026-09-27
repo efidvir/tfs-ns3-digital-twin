@@ -96,6 +96,9 @@
               <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
                 Interactive Wire Flow
               </span>
+              <span id="profile-indicator-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                ● Detecting Deployment...
+              </span>
             </div>
             <p class="text-sm text-[var(--muted-foreground)] mt-1">
               Visualizing Real-Time End-to-End Execution: Intent (TMF921) → TFS State Sync (:8088) → NS-3 Simulation (efid@cersrv-029) → AI Decision Gatekeeper → 2PC Hardware Actuation (192.168.1.225)
@@ -1341,8 +1344,36 @@
       t.innerHTML = `<div class="text-[var(--muted-foreground)]">Terminal cleared. Ready for next loop.</div>`;
     }
 
+    async function checkDeploymentProfile() {
+      try {
+        const res = await fetch("/api/v1/digital-twin/status");
+        if (res.ok) {
+          const data = await res.json();
+          const dep = data.deployment;
+          const badge = document.getElementById("profile-indicator-badge");
+          if (badge && dep) {
+            if (dep.is_standalone) {
+              badge.textContent = "● Mode: Standalone Sandbox (0 Dependencies)";
+              badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
+            } else {
+              badge.textContent = `● Mode: ${dep.active_profile.toUpperCase()} (TFS :8088 | MH-T261 | cersrv-029)`;
+              badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30";
+            }
+          }
+        }
+      } catch (e) {
+        // Fallback for static viewing
+        const badge = document.getElementById("profile-indicator-badge");
+        if (badge) {
+          badge.textContent = "● Standalone Static Mode";
+          badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
+        }
+      }
+    }
+
     // Initialize on stage 1
     window.addEventListener('DOMContentLoaded', () => {
+      checkDeploymentProfile();
       updateResolutionGovernorUI(currentScenario, currentResolution);
       inspectFlowStage(1);
     });

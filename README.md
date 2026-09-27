@@ -259,17 +259,59 @@ STEP 5: Pre-Flight Safety Verification & TFS 2PC Actuation
   [OK] Committed configuration to ETSI TeraFlowSDN candidate datastore via 2-Phase Commit (2PC).
 ```
 
-### 3. Launch the Standalone Digital Twin REST API Server
-```bash
-python tfs_digital_twin_api.py 9100
+---
+
+## 9. Deployment Profiles: Standalone Sandbox vs. Physical Lab
+
+The framework is decoupled and can be instantiated by anyone without external lab dependencies:
+
+```
++-----------------------------------------------------------------------------------------------+
+| PROFILE 1: STANDALONE (Default for any GitHub Clone)                                          |
+| Zero dependencies. Emulates TFS, Ceragon hardware, and NS-3 co-simulation in-memory.          |
+| Command:  python web_dashboard.py --profile standalone                                        |
+| Launcher: run_standalone.bat (Windows)  |  ./run_standalone.sh (Linux/macOS)                  |
++-----------------------------------------------------------------------------------------------+
+                                                |
++-----------------------------------------------------------------------------------------------+
+| PROFILE 2: LOCAL CERAGON LAB (Physical Network Deployment)                                    |
+| Interacts with live physical equipment:                                                       |
+|   - ETSI TeraFlowSDN Controller at http://localhost:8088 (WebUI: :8004)                       |
+|   - Physical Ceragon MH-T261 (ctu-96) at 192.168.1.225:80 (via Ethernet)                      |
+|   - Remote NS-3 v3.45 discrete engine on efid@cersrv-029 (/home/efid/ns3-dev/ns3)             |
+| Command:  python web_dashboard.py --profile local-ceragon                                     |
+| Launcher: run_local_lab.bat (Windows)   |  ./run_local_lab.sh (Linux/macOS)                   |
++-----------------------------------------------------------------------------------------------+
+                                                |
++-----------------------------------------------------------------------------------------------+
+| PROFILE 3: CUSTOM (User-Specified IP / Ports / Topology)                                      |
+| Command:  python web_dashboard.py --tfs-url http://10.0.0.1:8088 --device-ip 10.0.0.2         |
+| Or via:   python web_dashboard.py --config-file deployment_config.json                        |
++-----------------------------------------------------------------------------------------------+
 ```
 
-### 4. Run Unit Tests
+### Launching the Dashboard:
 ```bash
+# Out-of-the-box Standalone Mode (0 dependencies):
+python web_dashboard.py
+
+# Live Ceragon Lab Mode:
+python web_dashboard.py --profile local-ceragon --port 9200
+```
+
+### Running Unit Tests:
+```bash
+# Run Digital Twin core tests (8/8 passing):
 python -m unittest tests/test_digital_twin.py
+
+# Run Multi-Resolution Governor tests (6/6 passing):
+python -m unittest tests/test_resolution_governor.py
+
+# Run Deployment Profiles tests (4/4 passing):
+python -m unittest tests/test_deployment_profiles.py
 ```
 
-### 5. Generate NS-3 C++ Simulation Scenarios
+### Generating NS-3 C++ Simulation Scenarios:
 ```bash
 python tfs_topology_to_ns3.py --context admin --topology admin --wireless --traffic --output scratch/tfs_sim.cc
 ```
