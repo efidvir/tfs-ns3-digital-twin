@@ -1,0 +1,130 @@
+{
+  "source": "/home/user/efidvir/cer-intent/data/audit_log.jsonl",
+  "events_total": 1444,
+  "first": "2026-04-13T13:59:04.895084+00:00",
+  "last": "2026-09-23T10:12:19.169901+00:00",
+  "by_type": {
+    "SYSTEM_EVENT": 168,
+    "INTENT_PARSED": 52,
+    "INTENT_VALIDATED": 52,
+    "TRANSLATION_COMPLETE": 28,
+    "CONFIG_APPLIED": 1143,
+    "INTENT_DRIFT": 1
+  },
+  "applies_by_backend": {
+    "SimulatedAdapter": {
+      "ok": 80,
+      "failed": 0
+    },
+    "IP50CXMLAdapter": {
+      "ok": 2,
+      "failed": 0
+    },
+    "TeraFlowAdapter": {
+      "ok": 1026,
+      "failed": 35
+    }
+  },
+  "apply_failure_messages": {
+    "Cannot reach TeraFlow SDN at http://localhost:8088 — is the NBI service or SSH t": 32,
+    "TeraFlow SDN HTTP error Unknown: {\"message\": \"Internal Server Error\"}\n": 3
+  },
+  "applies_by_config_type": {
+    "radio": 1135,
+    "protection": 8
+  },
+  "distinct_devices": 61,
+  "top_devices": {
+    "mw-hub-1": 35,
+    "ceragon-mh-t261-ctu-96": 32,
+    "mw-agg-1": 31,
+    "mw-agg-2": 31,
+    "mw-agg-3": 31,
+    "mw-agg-4": 31,
+    "oran-core": 31,
+    "oran-cu1": 31
+  },
+  "intents_parsed_by_month": {
+    "2026-04": 40,
+    "2026-06": 1,
+    "2026-07": 6,
+    "2026-09": 5
+  },
+  "parse_to_last_apply_ms": {
+    "n": 22,
+    "median": 396.2275,
+    "p90": 86449.842,
+    "max": 1075769.8250000002,
+    "under_100ms": 0,
+    "under_1s": 13
+  },
+  "architect_strategies": {
+    "MRMC_Script_Upgrade": 22,
+    "1+1_HSB_Protection": 9,
+    "ACM_Floor_Hardening_Rain": 6,
+    "TX_Power_Adjustment": 4,
+    "none": 2,
+    "Network_Already_Efficient": 1
+  },
+  "intent_sources": {
+    "operator": 39,
+    "api": 21,
+    "agent": 2,
+    "dashboard": 3,
+    "cli_verification": 3
+  },
+  "intent_previews": [
+    "Increase capacity on link-A-B to 5 Gbps for eMBB slice",
+    "lower latency on A-E for app HOLO",
+    "lower latency on A-E for app HOLO",
+    "lower energy consumption across all network by 10%",
+    "{'type': 'capacity', 'target': {'target_type': 'all', 'identifier': 'all'}, 'parameters': {'raw_input': 'Set ACM range 6",
+    "{'type': 'capacity', 'target': {'target_type': 'all', 'identifier': 'all'}, 'parameters': {'raw_input': 'Enable 1+1 HSB ",
+    "Allocate 30% bandwidth to eMBB slice on link-E-H",
+    "Ensure latency < 5ms on link-D-E for URLLC traffic",
+    "xyz",
+    "Set ACM range 64QAM to 2048QAM on sector-south links",
+    "xyz",
+    "xyz",
+    "Set ACM range 64QAM to 2048QAM on sector-south links",
+    "Set ACM range 64QAM to 2048QAM on sector-south links",
+    "Set ACM range 64QAM to 2048QAM on sector-south links",
+    "Allocate 30% bandwidth to eMBB slice on link-E-H",
+    "Increase capacity on link-A-B to 5 Gbps",
+    "Enable space diversity on link-A-C",
+    "Increase capacity on link-A-B to 5 Gbps for eMBB slice",
+    "Increase capacity on link-A-H to 5 Gbps for eMBB slice",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "Set ACM range 64QAM to 2048QAM on sector-south links",
+    "Enable 1+1 HSB protection on sector-north",
+    "Ensure latency < 5ms on link-A-E for URLLC traffic",
+    "Allocate 30% bandwidth to eMBB slice on link-A-H",
+    "minimize energy on all devices",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "{'intent_type': 'resilience', 'target': {'target_type': 'node', 'identifier': 'node-C'}, 'parameters': {'protection_mode",
+    "make a joke",
+    "Enable deep sleep mode during night hours for Sector-North",
+    "Turn on MACsec payload encryption on link-D-E",
+    "Set ACM range 64QAM to 2048QAM on sector-south links",
+    "Ensure latency < 5ms on link-D-E for URLLC traffic",
+    "Allocate 30% bandwidth to eMBB slice on link-E-H",
+    "{'intent_type': 'capacity', 'target': {'target_type': 'node', 'identifier': 'xml-dev-1810'}, 'parameters': {'min_through",
+    "{'intent_type': 'capacity', 'target': {'target_type': 'node', 'identifier': 'xml-dev-1810'}, 'parameters': {'min_through",
+    "Set ACM range 64QAM to 2048QAM on sector-south links",
+    "Enable deep sleep mode during night hours for Sector-North",
+    "Increase capacity on link-A-B to 5 Gbps for eMBB slice",
+    "{'text': 'Set minimum modulation to 512QAM and max modulation to 1024QAM on Hub Node 1', 'intent_type': 'modulation', 't",
+    "{'type': 'capacity', 'target': {'target_type': 'node', 'identifier': 'ceragon-mh-t261-ctu-96'}, 'parameters': {'min_thro",
+    "{'type': 'slice', 'target': {'target_type': 'node', 'identifier': 'ceragon-mh-t261-ctu-96'}, 'parameters': {'slice_name'",
+    "Create slice slice-uran-6g with 1 Gbps on Ceragon MH-T261",
+    "Create slice slice-uran-6g with 1 Gbps on Ceragon MH-T261"
+  ]
+}
