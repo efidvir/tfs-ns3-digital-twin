@@ -249,36 +249,36 @@ def create_deck(output_path):
     # 6 Standard Cards in 2 rows x 3 columns
     stds = [
         {
+            "name": "3GPP TS 28.561",
+            "role": "NDT Management Service & NdtJob Model",
+            "what": "Approved 3GPP Rel-18/19 specification standardizing the NDT_MnS, NdtJob model, and simulation result semantics.",
+            "usage": "Primary Anchor for TeraFlow-to-NS-3: TFS instantiates an NdtSimulationJob, runs scoped co-simulation, and ingests standardized SimulationResult (PDB, PER, breach prediction).",
+            "color": GREEN_ACCENT,
+            "badge": "PRIMARY APPROVED ANCHOR"
+        },
+        {
+            "name": "ITU-T Q.5040",
+            "role": "Signaling Architecture & Control for DTN",
+            "what": "ITU-T SG11 standard defining signaling procedures for simulation task invocation (Sim-Task-Req), execution control, and KPI streaming.",
+            "usage": "The likely future signaling standard over the wire for our REST/JSON and SSH RPC bridge between TeraFlowSDN and NS-3 on cersrv-029.",
+            "color": CYAN_ACCENT,
+            "badge": "FUTURE SIGNALING PROTOCOL"
+        },
+        {
+            "name": "ITU-T Y.3090 / Y.3092",
+            "role": "DTN Architecture & Model Management (MMEF)",
+            "what": "ITU-T SG13 3-layer DTN model (Y.3090) and Model Management & Execution Framework (Y.3092) for model fidelity selection.",
+            "usage": "Dictates our 5-Tier Simulation Resolution Governor (balancing model accuracy vs computation time) and shadow datastore sync.",
+            "color": PURPLE_ACCENT,
+            "badge": "DTN ARCH & MMEF"
+        },
+        {
             "name": "TM Forum TMF921",
-            "role": "Intent Management API",
+            "role": "Intent Management REST API",
             "what": "REST API standard for expressing declarative network intent and SLA expectations.",
             "usage": "Operator defines latency (< 1.5ms) and availability without writing low-level scripts. Tracks intent state: Acknowledged → In Evaluation → Compliant.",
             "color": PURPLE_ACCENT,
             "badge": "BUSINESS & SLA"
-        },
-        {
-            "name": "3GPP TS 28.561",
-            "role": "Network Digital Twin (NDT) Lifecycle",
-            "what": "3GPP 5G/6G standard defining digital twin management services and closed-loop control.",
-            "usage": "Governs the 4-phase pre-flight verification gate before any action is actuated: verifies latency envelope, queue stability, jitter, and spectral mask.",
-            "color": GREEN_ACCENT,
-            "badge": "5G / 6G CORE"
-        },
-        {
-            "name": "ITU-T Y.3090",
-            "role": "Digital Twin Network (DTN) Architecture",
-            "what": "ITU-T standard defining the 3-layer Digital Twin reference model and synchronization.",
-            "usage": "Defines data repository synchronization between the Physical Network Layer and the Cyber Twin Layer. Powers our real-time shadow datastore.",
-            "color": CYAN_ACCENT,
-            "badge": "ARCHITECTURE"
-        },
-        {
-            "name": "IETF NMRG DTI",
-            "role": "Digital Twin Interface (RFC Draft)",
-            "what": "IETF Network Management Research Group interface for Twin-to-Simulator communication.",
-            "usage": "Standardizes the East-West protocol for injecting What-If perturbations (traffic surge, rain fade) and streaming discrete telemetry back to controller.",
-            "color": AMBER_ACCENT,
-            "badge": "SIMULATION SBI"
         },
         {
             "name": "IETF RFC 8040 / 7950",
@@ -373,7 +373,7 @@ def create_deck(output_path):
     # ─────────────────────────────────────────────────────────────────────────
     s4 = prs.slides.add_slide(blank_layout)
     add_bg(s4)
-    add_header(s4, "Adapter 1: TFS-to-NS-3 Simulation Adapter (The Cyber Mirror)", "HOW THE ADAPTER FUNCTIONS")
+    add_header(s4, "Adapter 1: TeraFlow-to-NS-3 Simulation Adapter (3GPP TS 28.561 & Q.5040)", "HOW THE ADAPTER FUNCTIONS")
 
     # Left: 4 Step Pipeline
     pipe_w = Inches(7.2)
@@ -389,24 +389,24 @@ def create_deck(output_path):
     tf_p.margin_top = Inches(0.2)
 
     p_head = tf_p.paragraphs[0]
-    p_head.text = "🔁 Step-by-Step Functional Flow (Simplified)"
+    p_head.text = "🔁 Step-by-Step Functional Flow (3GPP TS 28.561 & Q.5040)"
     p_head.font.size = Pt(14)
     p_head.font.bold = True
     p_head.font.color.rgb = CYAN_ACCENT
 
     steps = [
-        ("Step 1: Reconcile Live Topology & State", 
-         "The adapter queries ETSI TeraFlowSDN (:8088 Context) to extract the active 34-node graph, link bandwidths, and live Ceragon RF metrics (RSSI -58 dBm, MCS 8).",
+        ("Step 1: TFS Context → 3GPP NDTI State Sync", 
+         "The adapter queries ETSI TeraFlowSDN (:8088 Context) to populate the active 3GPP Network Digital Twin Instance (NDTI) with live 34-node topology, link capacities, and Ceragon RF metrics (RSSI -58 dBm, MCS 8).",
          PURPLE_ACCENT),
-        ("Step 2: Simulation Resolution Governor (Fidelity Scoping)",
-         "Instead of simulating all 34 nodes (which takes minutes), the Governor automatically scopes the graph to the relevant target domain (e.g. Tier 4: URLLC Micro-Packet, 23 nodes) executing in ~1150ms.",
+        ("Step 2: 3GPP NdtJob Creation & Y.3092 Scoping",
+         "Instantiates a standardized 3GPP NdtSimulationJob. The ITU-T Y.3092 Governor automatically scopes the graph to Tier 4: URLLC Micro-Packet (23 nodes, 95% fidelity) executing in ~1150ms.",
+         GREEN_ACCENT),
+        ("Step 3: Q.5040 Simulation Task Signaling",
+         "Dispatches task to discrete core on cersrv-029 following the ITU-T Q.5040 signaling pattern (Sim-Task-Req), injecting a 3.5x bulk traffic surge (bufferbloat) or ITU-R P.838 rain fade.",
          CYAN_ACCENT),
-        ("Step 3: What-If Perturbation Dispatch",
-         "Injects real-world stress conditions into NS-3: 3.5x bulk traffic surge (bufferbloat) or ITU-R P.838 rain fade (ACM rate degradation from 1Gbps to 100Mbps).",
-         AMBER_ACCENT),
-        ("Step 4: Discrete Trace Ingestion & NetAnim Generation",
-         "NS-3 simulates microsecond discrete packet events on cersrv-029, generates /tmp/tsn_wifi_ceragon_anim.xml, and the adapter streams packet queues, buffer drops, and latencies back to the twin.",
-         GREEN_ACCENT)
+        ("Step 4: 3GPP SimulationResult Semantics & Trace Ingestion",
+         "Ingests standardized 3GPP SimulationResult semantics (predicted PDB latency, PER loss, queue depth, slaBreachPredicted verdict) and discrete NetAnim trace to gate physical actuation.",
+         AMBER_ACCENT)
     ]
 
     for title, desc, col in steps:
@@ -438,6 +438,30 @@ def create_deck(output_path):
 
     p_th = tf_t.paragraphs[0]
     p_th.text = "⚙️ Key Implementation Features"
+    p_th.font.size = Pt(14)
+    p_th.font.bold = True
+    p_th.font.color.rgb = TEXT_WHITE
+
+    tech_features = [
+        ("3GPP TS 28.561 NDT_MnS", "Implements approved 3GPP NDT management service operations: job parameterization, target subnetwork scoping, and simulation result semantics."),
+        ("ITU-T Q.5040 Signaling", "Adopts the emerging Q.5040 task invocation and report signaling pattern between ETSI TeraFlowSDN and the remote NS-3 simulation engine."),
+        ("Multi-Tier Y.3092 Governor", "5 Resolution Tiers (Macro-Topology 25%, Queue Dynamics 55%, Physical RF 75%, URLLC 95%, Green Energy 20%)."),
+        ("NetAnim Discrete Replay", "Instruments AnimationInterface for real timeline playback (0.000s - 2.500s) with 10 visual buffer slots and tail-drop alerts.")
+    ]
+
+    for title, desc in tech_features:
+        p_tf = tf_t.add_paragraph()
+        r_t = p_tf.add_run()
+        r_t.text = "\n• " + title + ": "
+        r_t.font.size = Pt(10.5)
+        r_t.font.bold = True
+        r_t.font.color.rgb = CYAN_ACCENT
+
+        r_d = p_tf.add_run()
+        r_d.text = desc
+        r_d.font.size = Pt(10)
+        r_d.font.color.rgb = TEXT_MUTED
+        p_tf.space_before = Pt(4)
     p_th.font.size = Pt(14)
     p_th.font.bold = True
     p_th.font.color.rgb = TEXT_WHITE
