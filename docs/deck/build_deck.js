@@ -134,6 +134,55 @@ const fmt = (n) => n.toLocaleString("en-US");
   }
 
   // ===================================================================
+  // 1b. Motivation: purpose and goals
+  // ===================================================================
+  {
+    const s = pres.addSlide();
+    s.background = { color: WHITE };
+    title(s, "Motivation", "Why this project exists");
+    card(s, pres, 0.5, 1.3, 9.0, 0.62, NAVY);
+    txt(s, [
+      { text: "Purpose: ", options: { bold: true, color: C_SDN } },
+      { text: "let operators state what they want in plain words, test it in a digital twin, and only then change the live microwave network, automatically and safely.", options: { color: WHITE } },
+    ], { x: 0.7, y: 1.3, w: 8.6, h: 0.62, fontSize: 11.5, valign: "middle" });
+
+    txt(s, "WHY", { x: 0.5, y: 2.1, w: 4, h: 0.22, fontSize: 9, bold: true, color: RED, charSpacing: 1.5 });
+    const why = [
+      [fa.FaCloudShowersHeavy, "Weather moves capacity", "Rain fade at 60–80 GHz can cut a link from 1 Gbps to 100 Mbps."],
+      [fa.FaKeyboard, "Changes are manual and risky", "CLI work per radio; a bad change hits live traffic."],
+      [fa.FaPuzzlePiece, "Tools don't talk", "Intent, SDN, simulator and radio use different languages and clocks."],
+      [fa.FaRobot, "AI needs a safe sandbox", "Agents must be tested before they touch the network."],
+    ];
+    for (let i = 0; i < why.length; i++) {
+      const y = 2.4 + i * 0.7;
+      await iconCircle(s, pres, why[i][0], 0.5, y + 0.04, 0.46, RED);
+      txt(s, why[i][1], { x: 1.1, y, w: 3.3, h: 0.26, fontFace: HEAD, fontSize: 11, bold: true });
+      txt(s, why[i][2], { x: 1.1, y: y + 0.27, w: 3.35, h: 0.38, fontSize: 9.5, color: MUTED });
+    }
+
+    txt(s, "GOALS · STATUS TODAY", { x: 4.85, y: 2.1, w: 4.6, h: 0.22, fontSize: 9, bold: true, color: C_HW, charSpacing: 1.5 });
+    const goals = [
+      ["Intent → configuration through the SDN controller", "PARTIAL"],
+      ["Every change tested in the ns-3 twin before commit", "PARTIAL"],
+      ["Closed loop on real radios: verify, then roll back", "PLANNED"],
+      ["Standard interfaces end to end, no vendor lock-in", "PARTIAL"],
+      ["AI/ML agents trained and gated in the twin", "PLANNED"],
+    ];
+    for (let i = 0; i < goals.length; i++) {
+      const y = 2.4 + i * 0.56;
+      card(s, pres, 4.85, y, 4.65, 0.48);
+      txt(s, `G${i + 1}`, { x: 4.97, y, w: 0.4, h: 0.48, fontFace: HEAD, fontSize: 12, bold: true, color: C_HW, valign: "middle" });
+      txt(s, goals[i][0], { x: 5.38, y, w: 3.0, h: 0.48, fontSize: 10, valign: "middle" });
+      badge(s, pres, 8.45, y + 0.13, goals[i][1], 0.95);
+    }
+    s.addNotes(
+      "Purpose: an intent-driven, twin-validated closed loop for microwave and millimetre-wave transport in 5G/6G networks, built on the open-source ETSI TeraFlowSDN controller, the ns-3 simulator and Ceragon MH-T261 radios.\n" +
+      "Why: (1) at 60-80 GHz, rain attenuation drives adaptive modulation down; the ns-3 scenario models hop-1 rate falling from 1 Gbps to 100 Mbps under heavy rain. (2) Radio changes are done per device and a mistake lands on live traffic. (3) Intent, SDN, simulator and radio speak different protocols on timescales from microseconds to days. (4) AI agents, such as reinforcement-learning policies, need an isolated place to train and be validated.\n" +
+      "Goals and where they stand: G1 intents reach TFS and the radio driver (PARTIAL: key mismatch, canned read-back). G2 the ns-3 scenario runs over SSH but its results do not gate commits yet (PARTIAL). G3 verify and rollback after commit are not implemented (PLANNED). G4 RESTCONF/YANG is real; TMF921, TS 28.561 and CAPIF are labels (PARTIAL). G5 no ML in the loop yet (PLANNED). The gap register and roadmap later in the deck show how each goal gets closed."
+    );
+  }
+
+  // ===================================================================
   // 2. The problem
   // ===================================================================
   {
@@ -607,6 +656,97 @@ const fmt = (n) => n.toLocaleString("en-US");
       "TMF921: CER-Intent's intent model is a custom Pydantic schema; tfs_digital_twin_api.py POST /api/v1/tmf/tmf921/intent stores the payload and returns 'acknowledged' with no TMF resource model or lifecycle. TMF639 is a minimal GET projection.\n" +
       "TS 28.561: only the NDTI states (NULL, INITIALIZING, SYNCHRONIZED, UPDATING, EXECUTING_EXPERIMENT, TERMINATED) in tfs_digital_twin_api.py; the NdtJob model exists only in generate_deck.py. CAPIF: a static JSON descriptor without OAuth or mTLS.\n" +
       "Y.3090 is a label on /dti/sync; Y.3092 and Q.5040 appear only in slides and a commit message. YANG-Push and gNMI are claimed in docs only. P.838: approximate k and alpha at 60 GHz in formulas."
+    );
+  }
+
+  // ===================================================================
+  // 11b. Interface map with the standards per interface
+  // ===================================================================
+  {
+    const s = pres.addSlide();
+    s.background = { color: WHITE };
+    title(s, "Standards by interface", "Four interfaces, and the standards that fit each");
+    async function node(x, y, I, c, a, b) {
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w: 2.0, h: 0.8, fill: { color: WHITE }, line: { color: c, width: 1.5 }, rectRadius: 0.08, shadow: { type: "outer", blur: 4, offset: 1, angle: 90, color: "000000", opacity: 0.12 } });
+      await iconCircle(s, pres, I, x + 0.1, y + 0.18, 0.44, c);
+      txt(s, a, { x: x + 0.62, y: y + 0.12, w: 1.35, h: 0.28, fontFace: HEAD, fontSize: 10.5, bold: true });
+      txt(s, b, { x: x + 0.62, y: y + 0.4, w: 1.35, h: 0.3, fontSize: 8.5, color: MUTED });
+    }
+    function chip(x, y, w, n, t, c) {
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h: 0.5, fill: { color: TINT }, line: { color: c, width: 1 }, rectRadius: 0.06 });
+      txt(s, [{ text: n + " ", options: { bold: true, color: c } }, { text: t, options: { color: INK } }], { x: x + 0.08, y, w: w - 0.12, h: 0.5, fontSize: 8.5, valign: "middle" });
+    }
+    await node(0.5, 2.55, fa.FaUserTie, C_INTENT, "CER-Intent", "LLM + rule agents");
+    await node(4.0, 1.35, fa.FaProjectDiagram, C_SDN, "TeraFlowSDN", "SDN controller");
+    await node(4.0, 4.35, fa.FaFlask, C_SIM, "Digital twin", "ns-3.45");
+    await node(7.5, 1.35, fa.FaBroadcastTower, C_HW, "MH-T261", "Ceragon radio");
+    arrow(s, pres, 2.5, 2.75, 4.0, 1.95, NAVY);
+    arrow(s, pres, 2.5, 3.15, 4.0, 4.55, NAVY);
+    arrow(s, pres, 5.0, 2.15, 5.0, 4.35, NAVY, true);
+    arrow(s, pres, 6.0, 1.75, 7.5, 1.75, NAVY);
+    chip(0.5, 1.35, 3.3, "①", "TMF921 · TS 28.312 · IETF L3NM / slice NBI", C_INTENT);
+    chip(0.5, 4.2, 3.3, "②", "TS 28.561 NDTJob · Y.3092 NDT-m · CAPIF", C_SIM);
+    chip(5.2, 2.95, 4.3, "③", "RFC 8345 · RFC 8561 · YANG-Push / gNMI · Y.3092 NDT-p", C_SDN);
+    chip(6.2, 2.3, 3.3, "④", "RESTCONF 8040/8527 · YANG · RFC 8561 · TLS", C_HW);
+    card(s, pres, 6.3, 3.65, 3.2, 1.5);
+    txt(s, "In use today", { x: 6.45, y: 3.72, w: 3.0, h: 0.25, fontFace: HEAD, fontSize: 10, bold: true, color: NAVY });
+    txt(s, "① TFS native REST NBI\n② SSH + JSON, custom REST :9100\n③ TFS REST polling every 1 s\n④ RESTCONF candidate → commit", { x: 6.45, y: 3.98, w: 3.0, h: 1.1, fontSize: 9.5, color: INK, paraSpaceAfter: 2 });
+    s.addNotes(
+      "① CER-Intent agents to TFS (northbound): today TFS native REST (PUT /tfs-api/device, POST slices). Adopt TM Forum TMF921 or 3GPP TS 28.312 for the intent itself, and hand TFS standard service requests through its existing IETF L3NM (RFC 9182), L2NM (RFC 9291) and network-slice (RFC 9543 framework) NBI plugins.\n" +
+      "② CER-Intent to the digital twin: today SSH to cersrv-029 plus a custom REST API on :9100. Adopt 3GPP TS 28.561 NDTJob/NDTReport over TS 28.532 operations, which ITU-T Y.3092 calls NDT-m, and expose it through CAPIF (TS 29.222).\n" +
+      "③ TFS and the twin: today REST polling every second. Adopt RFC 8345 topology (TFS ietf_network NBI) and RFC 8561 microwave link data for the ns-3 model, and YANG-Push (RFC 8641) or gNMI streaming into TFS KPI/Kafka (Y.3092 NDT-p). Model physics from ITU-R P.838, P.676 and P.530.\n" +
+      "④ TFS to the radio: today RESTCONF (RFC 8040) on the NMDA candidate datastore (RFC 8527 path /restconf/ds/ietf-datastores:candidate) with NETCONF commit/discard operations and vendor radio-bridge-tg YANG. Adopt RFC 8561 / ONF TR-532 models, YANG-Push telemetry, TLS 1.3 and NACM.\n" +
+      "Full list with statuses: docs/STANDARDS_BY_INTERFACE.md."
+    );
+  }
+
+  // ===================================================================
+  // 11c. Standards matrix per interface
+  // ===================================================================
+  {
+    const s = pres.addSlide();
+    s.background = { color: WHITE };
+    title(s, "Standards by interface", "What we use, what TFS offers, what to adopt");
+    const TAG = {
+      "IN USE": { fill: C_HW, text: WHITE, line: C_HW },
+      "IN TFS": { fill: C_SDN, text: WHITE, line: C_SDN },
+      ADOPT: { fill: NAVY, text: WHITE, line: NAVY },
+      EMERGING: { fill: WHITE, text: C_SIM, line: C_SIM, dash: true },
+      "DE FACTO": { fill: WHITE, text: MUTED, line: "9AA7B4" },
+    };
+    const cols = [
+      ["①", "Agents → TFS", C_INTENT, [
+        ["IN USE", "TFS REST NBI"], ["ADOPT", "TMF921 intent API"], ["ADOPT", "3GPP TS 28.312 intent"],
+        ["IN TFS", "IETF L3NM · L2NM"], ["IN TFS", "IETF network slice NBI"], ["IN TFS", "CAMARA QoD"], ["DE FACTO", "MCP tools for agents"]]],
+      ["②", "Agents → twin", C_SIM, [
+        ["IN USE", "SSH + JSON · OpenAPI"], ["ADOPT", "TS 28.561 NDTJob"], ["ADOPT", "Y.3092 NDT-m"],
+        ["ADOPT", "CAPIF TS 29.222"], ["ADOPT", "TS 28.105 · Y.3181"], ["DE FACTO", "Gymnasium · ns3-ai"], ["EMERGING", "Rel-20 NDT · Q.SDTN"]]],
+      ["③", "TFS ↔ twin", C_SDN, [
+        ["IN USE", "TFS REST polling"], ["IN TFS", "RFC 8345 topology"], ["ADOPT", "RFC 8561 microwave YANG"],
+        ["ADOPT", "YANG-Push · gNMI"], ["IN TFS", "KPI · telemetry · Kafka"], ["ADOPT", "ITU-R P.838 · P.676 · P.530"], ["ADOPT", "Y.3092 NDT-p · Y.3093"]]],
+      ["④", "TFS → radio", C_HW, [
+        ["IN USE", "RESTCONF RFC 8040"], ["IN USE", "NMDA RFC 8527 · 8342"], ["IN USE", "YANG 1.1 · 802.1Q"],
+        ["ADOPT", "RFC 8561 · ONF TR-532"], ["ADOPT", "YANG-Push telemetry"], ["ADOPT", "TLS 1.3 · NACM"], ["DE FACTO", "vendor radio-bridge-tg"]]],
+    ];
+    const cw = 2.175, gap = 0.1;
+    for (let i = 0; i < cols.length; i++) {
+      const [n, name, c, items] = cols[i];
+      const x = 0.5 + i * (cw + gap), y = 1.3;
+      card(s, pres, x, y, cw, 3.92);
+      txt(s, [{ text: n + " ", options: { color: c } }, { text: name, options: { color: NAVY } }], { x: x + 0.12, y: y + 0.1, w: cw - 0.2, h: 0.32, fontFace: HEAD, fontSize: 12, bold: true, valign: "middle" });
+      for (let j = 0; j < items.length; j++) {
+        const yy = y + 0.55 + j * 0.47;
+        const t = TAG[items[j][0]];
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: x + 0.1, y: yy, w: cw - 0.2, h: 0.4, fill: { color: WHITE }, line: { color: WHITE }, rectRadius: 0.05 });
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: x + 0.16, y: yy + 0.1, w: 0.62, h: 0.2, fill: { color: t.fill }, line: { color: t.line, width: 0.75, dashType: t.dash ? "dash" : "solid" }, rectRadius: 0.1 });
+        txt(s, items[j][0], { x: x + 0.16, y: yy + 0.1, w: 0.62, h: 0.2, fontFace: HEAD, fontSize: 5.5, bold: true, color: t.text, align: "center", valign: "middle" });
+        txt(s, items[j][1], { x: x + 0.84, y: yy, w: cw - 0.96, h: 0.4, fontSize: 8.5, valign: "middle" });
+      }
+    }
+    s.addNotes(
+      "Tags: IN USE = our code uses it today; IN TFS = TeraFlowSDN ships it but we do not use it yet; ADOPT = recommended for this interface; EMERGING = still being standardised; DE FACTO = open-source or vendor convention.\n" +
+      "Notes: TS 28.312 is 3GPP's intent-driven management service; RFC 8527 defines the /restconf/ds/<datastore> paths our driver uses; calling NETCONF commit/discard through RESTCONF operations is a vendor mapping, not part of RFC 8040. MCP (Model Context Protocol) is a de facto way to expose TFS and twin operations as tools for LLM agents.\n" +
+      "Details and rationale for every entry: docs/STANDARDS_BY_INTERFACE.md."
     );
   }
 
