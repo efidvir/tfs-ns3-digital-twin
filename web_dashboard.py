@@ -529,9 +529,55 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(get_restconf_wire_log(GLOBAL_CONFIG)).encode("utf-8"))
             return
 
+        # 7. D3.1 IETF RESTCONF API Proxy (Section 3.4.1, 4.2.4, 4.2.5)
+        if self.path.startswith("/restconf/"):
+            try:
+                r = requests.get(f"http://localhost:5000{self.path}", timeout=3)
+                self.send_response(r.status_code)
+                for h, v in r.headers.items():
+                    if h.lower() in ["content-type"]:
+                        self.send_header(h, v)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(r.content)
+                return
+            except Exception as e:
+                self.send_response(502)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": f"RESTCONF proxy failed: {e}"}).encode("utf-8"))
+                return
+
         super().do_GET()
 
     def do_POST(self):
+        # D3.1 IETF RESTCONF Operations Proxy (PCE, Subscriptions, Slice Creation)
+        if self.path.startswith("/restconf/"):
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len) if content_len > 0 else b"{}"
+            try:
+                r = requests.post(
+                    f"http://localhost:5000{self.path}",
+                    data=post_body,
+                    headers={"Content-Type": "application/json"},
+                    timeout=4
+                )
+                self.send_response(r.status_code)
+                for h, v in r.headers.items():
+                    if h.lower() in ["content-type"]:
+                        self.send_header(h, v)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(r.content)
+                return
+            except Exception as e:
+                self.send_response(502)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": f"RESTCONF POST proxy failed: {e}"}).encode("utf-8"))
+                return
         # Dedicated TSN Co-Simulation Endpoint (WiFi APs + 4 Ceragon Devices)
         if self.path == "/api/v1/digital-twin/simulate-tsn":
             content_len = int(self.headers.get("Content-Length", 0))
