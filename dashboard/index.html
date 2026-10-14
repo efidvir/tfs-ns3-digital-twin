@@ -79,8 +79,8 @@
           </div>
         </div>
 
-        <!-- 4 Primary Navigation Tabs -->
-        <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+        <!-- 5 Primary Navigation Tabs -->
+        <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 flex-wrap">
           <button id="tab-btn-sim" onclick="switchMainTab('simulation')" class="tab-btn active px-3.5 py-2 rounded-lg text-xs font-bold font-mono transition-all flex items-center gap-2">
             <span>🎮</span> NS-3 Discrete Animator
           </button>
@@ -92,6 +92,9 @@
           </button>
           <button id="tab-btn-d31" onclick="switchMainTab('d31-transport')" class="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold font-mono transition-all text-slate-400 hover:text-white flex items-center gap-2">
             <span>📜</span> D3.1 Transport &amp; RFC 9543
+          </button>
+          <button id="tab-btn-optiona" onclick="switchMainTab('option-a')" class="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold font-mono transition-all text-amber-300 hover:text-white flex items-center gap-2 border border-amber-500/30 bg-amber-500/10">
+            <span>🧪</span> Option A: 8 IP-50 + 8 TG Testbed
           </button>
         </div>
       </div>
@@ -985,6 +988,141 @@
 
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 5: OPTION A — 8 IP-50 + 8 TG CONDUCTED BENCH & MARL RECOVERY     -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-option-a" class="space-y-6 hidden">
+
+      <!-- Testbed Header & Control Toolbar -->
+      <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-5 shadow-lg space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl">
+              🧪
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-white font-mono">
+                  Option A: 8 IP-50 + 8 TG Conducted Testbed
+                </h2>
+                <span id="optiona-phase-pill" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  ● Normal DPIR
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">
+                8 Sites (CORE, HUB, W1, W2, E1, E2, N, S) &bull; 8 Ceragon IP-50 Microwave (18 GHz) &bull; 8 Siklu TG mmWave (60 GHz: 6 DN, 2 CN) &bull; 6 Edge Agent PCs
+              </p>
+            </div>
+          </div>
+
+          <!-- Phase Triggers -->
+          <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+            <button id="btn-oa-normal" onclick="setOptionAPhase('reset')" class="px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-600/50 flex items-center gap-1.5">
+              <span>🟢</span> 1. Normal DPIR
+            </button>
+            <button id="btn-oa-disaster" onclick="setOptionAPhase('disaster-cut')" class="px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all bg-rose-600/30 text-rose-300 border border-rose-500/50 hover:bg-rose-600/50 flex items-center gap-1.5">
+              <span>💥</span> 2. Disaster Cut (t₀)
+            </button>
+            <button id="btn-oa-recover" onclick="setOptionAPhase('marl-recover')" class="px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all bg-purple-600/30 text-purple-300 border border-purple-500/50 hover:bg-purple-600/50 flex items-center gap-1.5">
+              <span>⚡</span> 3. MARL 3-Bridge Recovery
+            </button>
+          </div>
+        </div>
+
+        <!-- Description Box -->
+        <div id="optiona-description-box" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 flex items-center justify-between">
+          <div><strong class="text-emerald-400">Current Phase:</strong> <span id="optiona-phase-desc">Normal Operation: DPIR routing flows F1 &amp; F2 across Microwave IP-50 core and Siklu TG Hub.</span></div>
+          <div class="text-[11px] text-slate-500">D2.4 Token: <span id="optiona-token-badge" class="text-cyan-400 font-mono">cftok-verified</span></div>
+        </div>
+      </div>
+
+      <!-- Canvas Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>🗺️</span> Topology &amp; Beam Steering Visualizer
+            </h3>
+            <span class="text-xs text-slate-400 font-normal">Real-Time Conducted Bench Interconnect</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs font-mono">
+            <span class="flex items-center gap-1.5 text-cyan-400"><span class="w-3 h-0.5 bg-cyan-400 inline-block"></span> Microwave IP-50 (18 GHz)</span>
+            <span class="flex items-center gap-1.5 text-amber-400"><span class="w-3 h-0.5 bg-amber-400 border-b border-dashed inline-block"></span> Siklu TG (60 GHz)</span>
+            <span class="flex items-center gap-1.5 text-emerald-400"><span class="w-3 h-1 bg-emerald-400 inline-block"></span> MARL Reconnection Bridge</span>
+          </div>
+        </div>
+
+        <!-- Interactive Canvas -->
+        <div class="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+          <canvas id="option-a-canvas" width="1120" height="540" class="w-full h-auto block"></canvas>
+        </div>
+      </div>
+
+      <!-- 3-Column Telemetry & Execution Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        
+        <!-- Column 1: Active End-to-End Transport Flows -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>🌊</span> Active Transport Flows
+            </h3>
+            <span class="text-[10px] font-mono text-cyan-400">TRex / DPIR</span>
+          </div>
+          <div id="optiona-flows-list" class="space-y-2 text-xs font-mono">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Column 2: Physical Testbed Bench BOM & Controls -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>🔌</span> Physical Bench Hardware Status
+            </h3>
+            <span class="text-[10px] font-mono text-purple-400">PDU &amp; Attenuators</span>
+          </div>
+          <div class="space-y-2 text-xs font-mono text-slate-300">
+            <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <span>Ceragon IP-50 Radios (8 units)</span>
+              <span id="stat-ip50-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">8/8 ONLINE</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <span>Siklu TG mmWave (6 DN, 2 CN)</span>
+              <span id="stat-tg-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">8/8 ONLINE</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <span>Switched PDUs (CORE &amp; HUB)</span>
+              <span id="stat-pdu-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">POWER ON</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <span>Spider / MW Attenuators</span>
+              <span id="stat-att-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">0 dB NOMINAL</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <span>Decentralized MARL Edge PCs</span>
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-bold">6 ACTORS READY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 3: MARL Candidate Bridges & D2.4 Actuation -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>🌉</span> MARL Bridges &amp; D2.4 Actuation
+            </h3>
+            <span class="text-[10px] font-mono text-emerald-400">Req-T23-ACT-04</span>
+          </div>
+          <div id="optiona-bridges-list" class="space-y-2 text-xs font-mono">
+            <!-- Dynamically populated with individual ignite buttons -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
 
   <script>
@@ -1023,6 +1161,7 @@
       document.getElementById('view-tfs-internals').classList.add('hidden');
       document.getElementById('view-closed-loop').classList.add('hidden');
       document.getElementById('view-d31-transport').classList.add('hidden');
+      document.getElementById('view-option-a').classList.add('hidden');
 
       if (tab === 'simulation') {
         document.getElementById('tab-btn-sim').classList.add('active');
@@ -1038,6 +1177,11 @@
         document.getElementById('tab-btn-d31').classList.add('active');
         document.getElementById('view-d31-transport').classList.remove('hidden');
         loadD31Data();
+      } else if (tab === 'option-a') {
+        document.getElementById('tab-btn-optiona').classList.add('active');
+        document.getElementById('view-option-a').classList.remove('hidden');
+        loadOptionAState();
+        startOptionAAnim();
       }
     }
 
@@ -1547,6 +1691,512 @@
       d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
       box.appendChild(d);
       box.scrollTop = box.scrollHeight;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // TAB 5: OPTION A TESTBED DATA, MARL ACTUATION & REAL-TIME CANVAS ANIMATOR
+    // ═════════════════════════════════════════════════════════════════════════
+    let optionAState = null;
+    let optionAAnimActive = false;
+    let optionAParticles = [];
+
+    const OPTION_A_COORDS = {
+      "CORE": { x: 560, y: 190, label: "CORE", sub: "Core Hub (2x IP-50 + TG DN)", role: "core", isCenter: true },
+      "HUB":  { x: 560, y: 340, label: "HUB", sub: "PtMP Hub (Siklu TG DN)", role: "hub", isCenter: true },
+      "W1":   { x: 230, y: 190, label: "W1", sub: "West 1 (2x IP-50 + TG DN)", role: "west", actor: "Actor 1 (W1)" },
+      "W2":   { x: 230, y: 400, label: "W2", sub: "West 2 (IP-50 + TG DN)", role: "west", actor: "Actor 2 (W2)" },
+      "E1":   { x: 890, y: 190, label: "E1", sub: "Incident 1 (2x IP-50 + TG DN)", role: "east", actor: "Actor 3 (E1)" },
+      "E2":   { x: 890, y: 400, label: "E2", sub: "Incident 2 (IP-50 + TG DN)", role: "east", actor: "Actor 4 (E2)" },
+      "N":    { x: 560, y: 65,  label: "N", sub: "Field Hospital (Siklu TG CN)", role: "north", actor: "Actor 5 (N)" },
+      "S":    { x: 560, y: 475, label: "S", sub: "Shelter Responders (TG CN)", role: "south", actor: "Actor 6 (S)" }
+    };
+
+    async function loadOptionAState() {
+      try {
+        const res = await fetch('/api/v1/testbed/option-a/state');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        optionAState = await res.json();
+        updateOptionAUI();
+      } catch (e) {
+        console.warn("Failed to load Option A state:", e);
+      }
+    }
+
+    async function setOptionAPhase(action) {
+      try {
+        const res = await fetch(`/api/v1/testbed/option-a/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        optionAState = await res.json();
+        updateOptionAUI();
+      } catch (e) {
+        alert(`Error triggering ${action}: ${e.message}`);
+      }
+    }
+
+    async function igniteOptionABridge(bridgeId) {
+      try {
+        const res = await fetch('/api/v1/testbed/option-a/ignite-bridge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bridge_id: bridgeId })
+        });
+        const data = await res.json();
+        const outcome = data.result?.outcome || 'UNKNOWN';
+        const token = data.result?.conflict_token || 'none';
+        const verified = data.result?.readback_evidence?.verified;
+        alert(`MARL Bridge ${bridgeId} Actuation:\n• Status: ${outcome}\n• D2.4 Token: ${token}\n• Read-back Verified: ${verified}\n• Modulation: ${data.candidate?.modulation}`);
+        await loadOptionAState();
+      } catch (e) {
+        alert(`Bridge ignition error: ${e.message}`);
+      }
+    }
+
+    function updateOptionAUI() {
+      if (!optionAState) return;
+
+      const pill = document.getElementById('optiona-phase-pill');
+      const desc = document.getElementById('optiona-phase-desc');
+      const p = optionAState.phase;
+
+      if (p === 'normal_dpir') {
+        pill.textContent = '● 1. Normal DPIR';
+        pill.className = 'px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+        desc.textContent = optionAState.phase_description || 'Normal DPIR: MW Core & Siklu TG Hub balanced.';
+        document.getElementById('stat-ip50-badge').textContent = '8/8 ONLINE';
+        document.getElementById('stat-ip50-badge').className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+        document.getElementById('stat-tg-badge').textContent = '8/8 ONLINE';
+        document.getElementById('stat-tg-badge').className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+        document.getElementById('stat-pdu-badge').textContent = 'POWER ON';
+        document.getElementById('stat-pdu-badge').className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+        document.getElementById('stat-att-badge').textContent = '0 dB NOMINAL';
+        document.getElementById('stat-att-badge').className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+      } else if (p === 'disaster_4_islands') {
+        pill.textContent = '● 2. DISASTER: 4 ISLANDS';
+        pill.className = 'px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse';
+        desc.textContent = optionAState.phase_description || 'DISASTER CUT: Switched PDUs cut CORE & HUB. Attenuators 90 dB.';
+        document.getElementById('stat-ip50-badge').textContent = '4/8 SEVERED';
+        document.getElementById('stat-ip50-badge').className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold';
+        document.getElementById('stat-tg-badge').textContent = '6/8 SEVERED';
+        document.getElementById('stat-tg-badge').className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold';
+        document.getElementById('stat-pdu-badge').textContent = 'CUT (CORE & HUB OFF)';
+        document.getElementById('stat-pdu-badge').className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold';
+        document.getElementById('stat-att-badge').textContent = '90 dB (MAX ATTENUATION)';
+        document.getElementById('stat-att-badge').className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold';
+      } else {
+        pill.textContent = '● 3. MARL RECOVERED (3 BRIDGES)';
+        pill.className = 'px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/40';
+        desc.textContent = optionAState.phase_description || 'MARL RECOVERED: 3 emergency TG mmWave bridges ignited. Spanning tree restored.';
+        document.getElementById('stat-ip50-badge').textContent = '4 IP-50 + 3 BRIDGES';
+        document.getElementById('stat-ip50-badge').className = 'px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold';
+        document.getElementById('stat-tg-badge').textContent = '6 EDGES IGNITED';
+        document.getElementById('stat-tg-badge').className = 'px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold';
+        document.getElementById('stat-pdu-badge').textContent = 'BYPASSED CORE/HUB';
+        document.getElementById('stat-pdu-badge').className = 'px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold';
+        document.getElementById('stat-att-badge').textContent = 'EMERGENCY mmWave';
+        document.getElementById('stat-att-badge').className = 'px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-bold';
+      }
+
+      // Populate Flows List
+      const flowsList = document.getElementById('optiona-flows-list');
+      if (flowsList && optionAState.flows) {
+        flowsList.innerHTML = '';
+        for (const [fKey, fData] of Object.entries(optionAState.flows)) {
+          const div = document.createElement('div');
+          div.className = 'p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1';
+          const isSevered = !fData.path && !fData.primary_path;
+          const pathArr = fData.path || fData.primary_path;
+          const pathStr = pathArr ? pathArr.join(' ➔ ') : 'SEVERED (NO PATH)';
+          const rateStr = fData.throughput_gbps ? `${fData.throughput_gbps} Gbps` : (fData.throughput_mbps ? `${fData.throughput_mbps} Mbps` : '0 bps');
+
+          div.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="font-bold ${isSevered ? 'text-rose-400' : 'text-cyan-300'}">${fKey}</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${isSevered ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-300'}">${fData.status}</span>
+            </div>
+            <div class="text-[11px] text-slate-300">Path: <span class="font-mono ${isSevered ? 'text-rose-400 line-through' : 'text-slate-100'}">${pathStr}</span></div>
+            <div class="text-[10px] text-slate-400 flex items-center justify-between pt-0.5">
+              <span>Throughput: <strong class="${isSevered ? 'text-rose-400' : 'text-emerald-400'}">${rateStr}</strong></span>
+              <span>${fData.latency_ms ? `Lat: ${fData.latency_ms} ms` : ''}</span>
+            </div>
+          `;
+          flowsList.appendChild(div);
+        }
+      }
+
+      // Populate Candidate Bridges List
+      const bridgesList = document.getElementById('optiona-bridges-list');
+      if (bridgesList && optionAState.marl_bridges) {
+        bridgesList.innerHTML = '';
+        for (const b of optionAState.marl_bridges) {
+          const div = document.createElement('div');
+          div.className = 'p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5';
+          const isActive = b.status === 'ignited_active';
+          div.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="font-bold ${isActive ? 'text-emerald-300' : 'text-slate-300'}">${b.name}</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${isActive ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">${isActive ? 'IGNITED (ACTIVE)' : 'STANDBY'}</span>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              ${b.distance_m}m &bull; SNR: <strong class="text-cyan-300">${b.snr_db} dB</strong> &bull; Mod: <strong class="text-yellow-300">${b.modulation}</strong> &bull; Steering: <strong>${b.steer_angle_deg}°</strong>
+            </div>
+            <div class="flex items-center justify-between pt-1">
+              <span class="text-[10px] text-slate-500">Actor Igniter: <strong class="text-slate-300">${b.igniter}</strong></span>
+              <button onclick="igniteOptionABridge('${b.bridge_id}')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/40 transition-all">
+                Manual Ignite
+              </button>
+            </div>
+          `;
+          bridgesList.appendChild(div);
+        }
+      }
+    }
+
+    function startOptionAAnim() {
+      if (optionAAnimActive) return;
+      optionAAnimActive = true;
+      initOptionAParticles();
+      requestAnimationFrame(renderOptionACanvasLoop);
+    }
+
+    function initOptionAParticles() {
+      optionAParticles = [];
+      for (let i = 0; i < 20; i++) {
+        optionAParticles.push({
+          progress: Math.random(),
+          speed: 0.005 + Math.random() * 0.007,
+          flowIdx: i % 4
+        });
+      }
+    }
+
+    function renderOptionACanvasLoop() {
+      if (activeTab !== 'option-a') {
+        optionAAnimActive = false;
+        return;
+      }
+      renderOptionACanvas();
+      requestAnimationFrame(renderOptionACanvasLoop);
+    }
+
+    function renderOptionACanvas() {
+      const cvs = document.getElementById('option-a-canvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width;
+      const h = cvs.height;
+
+      // 1. Clear background
+      ctx.fillStyle = "#020617";
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw subtle grid
+      ctx.strokeStyle = "rgba(30, 41, 59, 0.4)";
+      ctx.lineWidth = 1;
+      for (let x = 40; x < w; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 40; y < h; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const p = optionAState ? optionAState.phase : 'normal_dpir';
+      const isDisaster = p === 'disaster_4_islands' || p === 'recovered_marl_3_bridges';
+      const isRecovered = p === 'recovered_marl_3_bridges';
+
+      // 2. Draw Disaster Floor Overlay if CORE & HUB are down
+      if (isDisaster) {
+        ctx.save();
+        ctx.fillStyle = "rgba(239, 68, 68, 0.06)";
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.5)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.fillRect(440, 120, 240, 270);
+        ctx.strokeRect(440, 120, 240, 270);
+
+        ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
+        ctx.font = "bold 11px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("⚡ DISASTER ZONE: PDU CUT & 90 dB ATTENUATION", 560, 260);
+        ctx.restore();
+      }
+
+      // 3. Draw 4 Isolated Island Outlines if disaster
+      if (p === 'disaster_4_islands') {
+        ctx.save();
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+
+        // West Island {W1, W2}
+        ctx.fillStyle = "rgba(59, 130, 246, 0.08)";
+        ctx.strokeStyle = "rgba(59, 130, 246, 0.6)";
+        ctx.strokeRect(150, 120, 170, 330);
+        ctx.fillRect(150, 120, 170, 330);
+        ctx.fillStyle = "rgba(147, 197, 253, 0.9)";
+        ctx.font = "bold 11px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("ISLAND 1: WEST {W1, W2}", 235, 140);
+
+        // East Island {E1, E2}
+        ctx.fillStyle = "rgba(168, 85, 247, 0.08)";
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.6)";
+        ctx.strokeRect(800, 120, 175, 330);
+        ctx.fillRect(800, 120, 175, 330);
+        ctx.fillStyle = "rgba(216, 180, 254, 0.9)";
+        ctx.fillText("ISLAND 2: EAST {E1, E2}", 887, 140);
+
+        // North Island {N}
+        ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
+        ctx.strokeRect(460, 20, 200, 85);
+        ctx.fillRect(460, 20, 200, 85);
+        ctx.fillStyle = "rgba(110, 231, 183, 0.9)";
+        ctx.fillText("ISLAND 3: NORTH {N}", 560, 38);
+
+        // South Island {S}
+        ctx.fillStyle = "rgba(245, 158, 11, 0.08)";
+        ctx.strokeStyle = "rgba(245, 158, 11, 0.6)";
+        ctx.strokeRect(460, 435, 200, 85);
+        ctx.fillRect(460, 435, 200, 85);
+        ctx.fillStyle = "rgba(252, 211, 77, 0.9)";
+        ctx.fillText("ISLAND 4: SOUTH {S}", 560, 515);
+
+        ctx.restore();
+      }
+
+      // 4. Draw Links
+      if (optionAState && optionAState.links) {
+        for (const l of optionAState.links) {
+          const sCoord = OPTION_A_COORDS[l.source];
+          const tCoord = OPTION_A_COORDS[l.target];
+          if (!sCoord || !tCoord) continue;
+
+          ctx.save();
+          const isSevered = l.status === 'severed';
+          const isMarlBridge = l.media === 'tg_60ghz_marl_bridge' || l.id.startsWith('bridge-');
+
+          if (isSevered) {
+            ctx.strokeStyle = "rgba(239, 68, 68, 0.4)";
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 6]);
+            ctx.beginPath();
+            ctx.moveTo(sCoord.x, sCoord.y);
+            ctx.lineTo(tCoord.x, tCoord.y);
+            ctx.stroke();
+
+            // Severed marker in middle
+            const mx = (sCoord.x + tCoord.x) / 2;
+            const my = (sCoord.y + tCoord.y) / 2;
+            ctx.fillStyle = "rgba(239, 68, 68, 0.8)";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText("✖", mx - 5, my + 4);
+          } else if (isMarlBridge) {
+            // Vibrant glowing MARL emergency bridge!
+            ctx.strokeStyle = "rgba(52, 211, 153, 0.9)";
+            ctx.lineWidth = 3.5;
+            ctx.shadowColor = "#10b981";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(sCoord.x, sCoord.y);
+            ctx.lineTo(tCoord.x, tCoord.y);
+            ctx.stroke();
+
+            // Draw link badge
+            const mx = (sCoord.x + tCoord.x) / 2;
+            const my = (sCoord.y + tCoord.y) / 2;
+            ctx.fillStyle = "#0f172a";
+            ctx.strokeStyle = "#10b981";
+            ctx.lineWidth = 1;
+            ctx.fillRect(mx - 60, my - 12, 120, 22);
+            ctx.strokeRect(mx - 60, my - 12, 120, 22);
+            ctx.fillStyle = "#34d399";
+            ctx.font = "bold 9px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(`${l.current_modulation} (${l.snr_db}dB) ${l.steer_angle_deg}°`, mx, my + 3);
+          } else if (l.media === 'microwave') {
+            // MW link (IP-50)
+            ctx.strokeStyle = "rgba(56, 189, 248, 0.85)";
+            ctx.lineWidth = 3;
+            ctx.shadowColor = "#38bdf8";
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.moveTo(sCoord.x, sCoord.y);
+            ctx.lineTo(tCoord.x, tCoord.y);
+            ctx.stroke();
+
+            const mx = (sCoord.x + tCoord.x) / 2;
+            const my = (sCoord.y + tCoord.y) / 2;
+            ctx.fillStyle = "rgba(14, 165, 233, 0.8)";
+            ctx.font = "9px monospace";
+            ctx.fillText("MW 10G", mx - 18, my - 4);
+          } else {
+            // Siklu TG 60GHz link
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.8)";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(sCoord.x, sCoord.y);
+            ctx.lineTo(tCoord.x, tCoord.y);
+            ctx.stroke();
+
+            const mx = (sCoord.x + tCoord.x) / 2;
+            const my = (sCoord.y + tCoord.y) / 2;
+            ctx.fillStyle = "rgba(245, 158, 11, 0.8)";
+            ctx.font = "9px monospace";
+            ctx.fillText("TG 1G", mx - 12, my - 4);
+          }
+          ctx.restore();
+        }
+      }
+
+      // 5. Draw Candidate Bridges if in Standby
+      if (!isRecovered && optionAState && optionAState.marl_bridges) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(100, 116, 139, 0.4)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 6]);
+        for (const b of optionAState.marl_bridges) {
+          const sCoord = OPTION_A_COORDS[b.source];
+          const tCoord = OPTION_A_COORDS[b.target];
+          if (!sCoord || !tCoord) continue;
+          ctx.beginPath();
+          ctx.moveTo(sCoord.x, sCoord.y);
+          ctx.lineTo(tCoord.x, tCoord.y);
+          ctx.stroke();
+
+          const mx = (sCoord.x + tCoord.x) / 2;
+          const my = (sCoord.y + tCoord.y) / 2;
+          ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
+          ctx.font = "9px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(`Standby ${b.name.split(':')[0]} (${b.distance_m}m)`, mx, my - 3);
+        }
+        ctx.restore();
+      }
+
+      // 6. Draw Nodes
+      for (const [nodeId, coord] of Object.entries(OPTION_A_COORDS)) {
+        const isCut = isDisaster && (nodeId === 'CORE' || nodeId === 'HUB');
+
+        ctx.save();
+        const nw = 140;
+        const nh = 50;
+        const nx = coord.x - nw / 2;
+        const ny = coord.y - nh / 2;
+
+        if (isCut) {
+          ctx.fillStyle = "#1e1b2e";
+          ctx.strokeStyle = "#ef4444";
+          ctx.lineWidth = 2;
+          ctx.fillRect(nx, ny, nw, nh);
+          ctx.strokeRect(nx, ny, nw, nh);
+
+          ctx.fillStyle = "#f87171";
+          ctx.font = "bold 13px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(`💀 ${coord.label} [OFFLINE]`, coord.x, coord.y - 4);
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "9px monospace";
+          ctx.fillText("PDU POWER CUT", coord.x, coord.y + 12);
+        } else {
+          // Active Node Card
+          ctx.fillStyle = coord.role === 'north' || coord.role === 'south' ? "#0f172a" : "#022c22";
+          ctx.strokeStyle = coord.role === 'north' || coord.role === 'south' ? "#38bdf8" : "#10b981";
+          ctx.lineWidth = 2;
+          ctx.shadowColor = coord.role === 'north' || coord.role === 'south' ? "#0284c7" : "#059669";
+          ctx.shadowBlur = 8;
+          ctx.fillRect(nx, ny, nw, nh);
+          ctx.strokeRect(nx, ny, nw, nh);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 13px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(`📡 ${coord.label}`, coord.x, coord.y - 6);
+
+          ctx.fillStyle = "#cbd5e1";
+          ctx.font = "9px monospace";
+          ctx.fillText(coord.sub.length > 22 ? coord.sub.substring(0, 22) + "..." : coord.sub, coord.x, coord.y + 8);
+
+          if (coord.actor) {
+            ctx.fillStyle = "#34d399";
+            ctx.font = "bold 8px monospace";
+            ctx.fillText(`🤖 ${coord.actor}`, coord.x, coord.y + 18);
+          }
+        }
+        ctx.restore();
+      }
+
+      // 7. Animate Flow Particles on active links
+      if (optionAState && optionAState.flows) {
+        ctx.save();
+        for (const p of optionAParticles) {
+          p.progress = (p.progress + p.speed) % 1.0;
+
+          // Pick an active path
+          let pathNodes = null;
+          let particleColor = "#38bdf8";
+
+          if (isRecovered) {
+            if (p.flowIdx === 0 && optionAState.flows.F1) {
+              pathNodes = optionAState.flows.F1.path; // W1 -> W2 -> E2 -> E1
+              particleColor = "#10b981";
+            } else if (p.flowIdx === 1 && optionAState.flows.F2) {
+              pathNodes = optionAState.flows.F2.path; // W2 -> E2
+              particleColor = "#34d399";
+            } else if (p.flowIdx === 2 && optionAState.flows.svc_W1_S) {
+              pathNodes = optionAState.flows.svc_W1_S.path; // W1 -> S
+              particleColor = "#fbbf24";
+            } else if (p.flowIdx === 3 && optionAState.flows.svc_W2_N) {
+              pathNodes = optionAState.flows.svc_W2_N.path; // W2 -> E2 -> E1 -> N
+              particleColor = "#a855f7";
+            }
+          } else if (!isDisaster) {
+            if (p.flowIdx === 0 && optionAState.flows.F1) {
+              pathNodes = optionAState.flows.F1.primary_path; // W1 -> CORE -> E1
+              particleColor = "#38bdf8";
+            } else if (p.flowIdx === 1 && optionAState.flows.F2) {
+              pathNodes = optionAState.flows.F2.primary_path; // W2 -> HUB -> E2
+              particleColor = "#fbbf24";
+            } else if (p.flowIdx === 2 && optionAState.flows.svc_W1_S) {
+              pathNodes = optionAState.flows.svc_W1_S.path;
+              particleColor = "#f59e0b";
+            } else if (p.flowIdx === 3 && optionAState.flows.svc_W2_N) {
+              pathNodes = optionAState.flows.svc_W2_N.path;
+              particleColor = "#10b981";
+            }
+          }
+
+          if (pathNodes && pathNodes.length >= 2) {
+            const totalSegments = pathNodes.length - 1;
+            const segFloat = p.progress * totalSegments;
+            const segIdx = Math.floor(segFloat);
+            const segFrac = segFloat - segIdx;
+
+            const n1 = OPTION_A_COORDS[pathNodes[segIdx]];
+            const n2 = OPTION_A_COORDS[pathNodes[segIdx + 1]];
+            if (n1 && n2) {
+              const px = n1.x + (n2.x - n1.x) * segFrac;
+              const py = n1.y + (n2.y - n1.y) * segFrac;
+
+              ctx.fillStyle = particleColor;
+              ctx.shadowColor = particleColor;
+              ctx.shadowBlur = 8;
+              ctx.beginPath();
+              ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+        ctx.restore();
+      }
     }
 
     // Initialize System Status on Page Load

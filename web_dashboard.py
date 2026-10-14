@@ -529,42 +529,47 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(get_restconf_wire_log(GLOBAL_CONFIG)).encode("utf-8"))
             return
 
-        # 7. D3.1 IETF RESTCONF API, D5.1 TM Forum & D2.4 Conflict Fabric Proxy
+        # 7. D3.1 IETF RESTCONF API, D5.1 TM Forum, D2.4 Conflict Fabric & Option A Testbed Proxy
         if (self.path.startswith("/restconf/") or 
             self.path.startswith("/api/v1/tmf/") or 
             self.path.startswith("/api/v1/intent") or 
+            self.path.startswith("/api/v1/testbed/") or 
             self.path.startswith("/api/v1/conflict-fabric/")):
             try:
-                r = requests.get(f"http://localhost:5000{self.path}", timeout=3)
+                r = requests.get(f"http://127.0.0.1:5000{self.path}", timeout=3)
                 self.send_response(r.status_code)
                 for h, v in r.headers.items():
                     if h.lower() in ["content-type"]:
                         self.send_header(h, v)
+                self.send_header("Content-Length", str(len(r.content)))
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(r.content)
                 return
             except Exception as e:
+                err_bytes = json.dumps({"error": f"API proxy failed: {e}"}).encode("utf-8")
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(err_bytes)))
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": f"API proxy failed: {e}"}).encode("utf-8"))
+                self.wfile.write(err_bytes)
                 return
 
         super().do_GET()
 
     def do_POST(self):
-        # D3.1 IETF RESTCONF Operations, D5.1 TM Forum & D2.4 Conflict Fabric Proxy
+        # D3.1 IETF RESTCONF Operations, D5.1 TM Forum, D2.4 Conflict Fabric & Option A Testbed Proxy
         if (self.path.startswith("/restconf/") or 
             self.path.startswith("/api/v1/tmf/") or 
             self.path.startswith("/api/v1/intent") or 
+            self.path.startswith("/api/v1/testbed/") or 
             self.path.startswith("/api/v1/conflict-fabric/")):
             content_len = int(self.headers.get("Content-Length", 0))
             post_body = self.rfile.read(content_len) if content_len > 0 else b"{}"
             try:
                 r = requests.post(
-                    f"http://localhost:5000{self.path}",
+                    f"http://127.0.0.1:5000{self.path}",
                     data=post_body,
                     headers={"Content-Type": "application/json"},
                     timeout=4
@@ -573,13 +578,16 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                 for h, v in r.headers.items():
                     if h.lower() in ["content-type"]:
                         self.send_header(h, v)
+                self.send_header("Content-Length", str(len(r.content)))
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(r.content)
                 return
             except Exception as e:
+                err_bytes = json.dumps({"error": f"API POST proxy failed: {e}"}).encode("utf-8")
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(err_bytes)))
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": f"API POST proxy failed: {e}"}).encode("utf-8"))
