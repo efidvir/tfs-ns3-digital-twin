@@ -79,6 +79,8 @@ class DeploymentConfig:
 
     # Fallback and runtime ports
     descriptor_fallback_path: str = str(DEFAULT_DESCRIPTORS_FILE)
+    testbed_topology_path: str = str(DEFAULT_DATA_DIR / "option_a_topology.json")
+    cer_intent_url: str = "http://127.0.0.1:5000"
     web_port: int = 9200
     api_port: int = 9100
 
@@ -107,6 +109,7 @@ PROFILES: Dict[str, DeploymentConfig] = {
         ns3_host="localhost",
         ns3_path="ns3",
         use_mock_ns3=True,
+        cer_intent_url=os.getenv("CER_INTENT_URL", "http://127.0.0.1:5000"),
         web_port=9200,
         api_port=9100,
     ),
@@ -115,7 +118,7 @@ PROFILES: Dict[str, DeploymentConfig] = {
     "local-ceragon": DeploymentConfig(
         profile_name="local-ceragon",
         mode=DeploymentMode.LOCAL_CERAGON_LAB,
-        description="Physical Ceragon hardware + ETSI TeraFlowSDN + remote NS-3 on cersrv-029",
+        description="Physical Ceragon hardware + ETSI TeraFlowSDN + remote NS-3",
         tfs_url=os.getenv("TFS_URL", "http://localhost:8088"),
         tfs_webui_url=os.getenv("TFS_WEBUI_URL", "http://localhost:8004"),
         use_mock_tfs=False,
@@ -123,15 +126,16 @@ PROFILES: Dict[str, DeploymentConfig] = {
         device_port=80,
         device_user=os.getenv("CERAGON_USER", "admin"),
         device_pass=os.getenv("CERAGON_PASS", "admin"),
-        device_uuid="f676623c-1a65-54bd-b1e8-279c8a6d8a1c",
-        device_name="Ceragon MH-T261 (ctu-96)",
+        device_uuid=os.getenv("CERAGON_UUID", "f676623c-1a65-54bd-b1e8-279c8a6d8a1c"),
+        device_name=os.getenv("CERAGON_NAME", "Ceragon MH-T261 (ctu-96)"),
         device_model="Siklu / Ceragon MultiHaul TG (MH-T261)",
         use_mock_hw=False,
         ns3_mode="remote_ssh",
         ns3_host=os.getenv("NS3_HOST", "cersrv-029"),
         ns3_path=os.getenv("NS3_PATH", "/home/efid/ns3-dev/ns3"),
-        ns3_remote_user="efid",
+        ns3_remote_user=os.getenv("NS3_USER", "efid"),
         use_mock_ns3=False,
+        cer_intent_url=os.getenv("CER_INTENT_URL", "http://127.0.0.1:5000"),
         web_port=9200,
         api_port=9100,
     ),
@@ -152,7 +156,7 @@ def load_deployment_config(
     Loads deployment configuration resolving in order:
     1. Base profile (standalone, local-ceragon, custom).
     2. Optional JSON config file.
-    3. Environment variables (TFS_URL, CERAGON_IP, NS3_HOST, etc.).
+    3. Environment variables (TFS_URL, CERAGON_IP, NS3_HOST, CER_INTENT_URL, etc.).
     4. Explicit programmatic or CLI overrides.
     """
     # 1. Determine profile
@@ -186,8 +190,14 @@ def load_deployment_config(
     if "NS3_HOST" in os.environ:
         config.ns3_host = os.environ["NS3_HOST"]
         config.use_mock_ns3 = False
+    if "NS3_USER" in os.environ:
+        config.ns3_remote_user = os.environ["NS3_USER"]
     if "NS3_PATH" in os.environ:
         config.ns3_path = os.environ["NS3_PATH"]
+    if "CER_INTENT_URL" in os.environ:
+        config.cer_intent_url = os.environ["CER_INTENT_URL"]
+    if "TESTBED_TOPOLOGY_FILE" in os.environ:
+        config.testbed_topology_path = os.environ["TESTBED_TOPOLOGY_FILE"]
 
     # 3. Apply programmatic overrides
     if overrides:
@@ -199,7 +209,8 @@ def load_deployment_config(
         f"Initialized Digital Twin Deployment Config: [{config.profile_name.upper()}] "
         f"(TFS: {config.tfs_url} [mock={config.use_mock_tfs}], "
         f"HW: {config.device_ip} [mock={config.use_mock_hw}], "
-        f"NS-3: {config.ns3_host} [mode={config.ns3_mode}])"
+        f"NS-3: {config.ns3_host} [mode={config.ns3_mode}], "
+        f"CER-Intent: {config.cer_intent_url})"
     )
     return config
 
@@ -226,6 +237,18 @@ def add_deployment_cli_args(parser: argparse.ArgumentParser) -> None:
         help="ETSI TeraFlowSDN Northbound REST URL (e.g., http://localhost:8088)",
     )
     group.add_argument(
+        "--cer-intent-url",
+        type=str,
+        default=None,
+        help="CER-Intent API URL for intent/testbed proxy (default: http://127.0.0.1:5000)",
+    )
+    group.add_argument(
+        "--testbed-topology",
+        type=str,
+        default=None,
+        help="Path to testbed topology JSON file (default: data/option_a_topology.json)",
+    )
+    group.add_argument(
         "--device-ip",
         type=str,
         default=None,
@@ -242,6 +265,12 @@ def add_deployment_cli_args(parser: argparse.ArgumentParser) -> None:
         type=str,
         default=None,
         help="NS-3 execution host (e.g., cersrv-029 or localhost)",
+    )
+    group.add_argument(
+        "--ns3-user",
+        type=str,
+        default=None,
+        help="SSH username for remote NS-3 execution",
     )
     group.add_argument(
         "--ns3-path",

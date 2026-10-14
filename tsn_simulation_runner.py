@@ -7,6 +7,7 @@ Includes real-time discrete packet event streaming for interactive NetAnim playb
 
 import json
 import logging
+import os
 import re
 import subprocess
 import time
@@ -168,9 +169,11 @@ def build_discrete_packet_trace(
 
 
 class TSNSimulationRunner:
-    def __init__(self, host: str = "efid@cersrv-029", ns3_dir: str = "/home/efid/ns3-dev"):
-        self.host = host
-        self.ns3_dir = ns3_dir
+    def __init__(self, host: Optional[str] = None, ns3_dir: Optional[str] = None):
+        default_user = os.getenv("NS3_USER", "efid")
+        default_host = os.getenv("NS3_HOST", "localhost")
+        self.host = host or os.getenv("NS3_SSH_HOST", f"{default_user}@{default_host}")
+        self.ns3_dir = ns3_dir or os.getenv("NS3_DIR", "/home/efid/ns3-dev")
 
     def run_tsn_simulation(
         self,

@@ -30,7 +30,7 @@ import os
 import subprocess
 import sys
 import time
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -413,6 +413,70 @@ def get_restconf_wire_log(config: DeploymentConfig) -> List[Dict[str, Any]]:
     ]
 
 
+_STANDALONE_OPTION_A_STATE: Dict[str, Any] = {}
+
+
+def _create_tsn_runner(config: DeploymentConfig) -> TSNSimulationRunner:
+    """Instantiates TSNSimulationRunner from the active DeploymentConfig."""
+    ssh_host = f"{config.ns3_remote_user}@{config.ns3_host}" if config.ns3_remote_user else config.ns3_host
+    ns3_dir = config.ns3_path[:-4] if config.ns3_path.endswith("/ns3") else config.ns3_path
+    return TSNSimulationRunner(host=ssh_host, ns3_dir=ns3_dir)
+
+
+def _handle_standalone_option_a(method: str, path: str, body: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Standalone fallback for /api/v1/testbed/option-a/* when CER-Intent (:5000) is not running.
+    Reads topology from GLOBAL_CONFIG.testbed_topology_path so the dashboard remains 100% self-contained.
+    """
+    global _STANDALONE_OPTION_A_STATE
+    topo_path = Path(GLOBAL_CONFIG.testbed_topology_path) if GLOBAL_CONFIG else (Path(__file__).parent / "data" / "option_a_topology.json")
+    if not _STANDALONE_OPTION_A_STATE or (method == "POST" and path.endswith("/normal")):
+        try:
+            with open(topo_path, "r", encoding="utf-8") as f:
+                topo = json.load(f)
+        except Exception:
+            topo = {"nodes": {}, "links": {}, "candidate_bridges": {}}
+        _STANDALONE_OPTION_A_STATE = {
+            "phase": "PHASE_1_NORMAL_DPIR",
+            "nodes": topo.get("nodes", {}),
+            "links": topo.get("links", {}),
+            "candidate_bridges": topo.get("candidate_bridges", {}),
+            "flows": {
+                k: {**v, "status": "ACTIVE", "path": [v.get("source"), v.get("destination")]}
+                for k, v in topo.get("flows", {}).items()
+            },
+            "active_islands": [list(topo.get("nodes", {}).keys())],
+            "metrics": {"active_eband_links": 4, "active_vband_links": 4, "active_bridges": 0, "eband_Load_pct": 42.5, "vband_load_pct": 18.0},
+        }
+
+    if method == "POST" and path.endswith("/disaster-cut"):
+        cut_nodes = body.get("cut_nodes") or [
+            nid for nid, n in _STANDALONE_OPTION_A_STATE.get("nodes", {}).items() if n.get("pdu_controlled")
+        ] or ["HUB", "W2", "E1"]
+        _STANDALONE_OPTION_A_STATE["phase"] = "PHASE_2_DISASTER_ISLANDS"
+        for nid in cut_nodes:
+            if nid in _STANDALONE_OPTION_A_STATE["nodes"]:
+                _STANDALONE_OPTION_A_STATE["nodes"][nid]["status"] = "OFFLINE_PDU_CUT"
+        for lid, l in _STANDALONE_OPTION_A_STATE["links"].items():
+            if l.get("a") in cut_nodes or l.get("b") in cut_nodes:
+                l["status"] = "DOWN"
+        return {"status": "DISASTER_EXECUTED", "cut_nodes": cut_nodes, "state": _STANDALONE_OPTION_A_STATE}
+
+    if method == "POST" and path.endswith("/marl-recovery"):
+        _STANDALONE_OPTION_A_STATE["phase"] = "PHASE_3_MARL_3BRIDGE_RECOVERY"
+        for bid, b in _STANDALONE_OPTION_A_STATE["candidate_bridges"].items():
+            b["status"] = "IGNITED"
+        return {"status": "MARL_3BRIDGE_RECOVERED", "conflict_fabric_decision": "APPROVED", "state": _STANDALONE_OPTION_A_STATE}
+
+    if method == "POST" and path.endswith("/ignite-bridge"):
+        bid = body.get("bridge_id", "B1")
+        if bid in _STANDALONE_OPTION_A_STATE.get("candidate_bridges", {}):
+            _STANDALONE_OPTION_A_STATE["candidate_bridges"][bid]["status"] = "IGNITED"
+        return {"status": "IGNITED", "bridge_id": bid, "state": _STANDALONE_OPTION_A_STATE}
+
+    return _STANDALONE_OPTION_A_STATE
+
+
 class DashboardRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DASHBOARD_DIR), **kwargs)
@@ -535,8 +599,9 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self.path.startswith("/api/v1/intent") or 
             self.path.startswith("/api/v1/testbed/") or 
             self.path.startswith("/api/v1/conflict-fabric/")):
+            target_base = (GLOBAL_CONFIG.cer_intent_url or "http://127.0.0.1:5000").rstrip("/")
             try:
-                r = requests.get(f"http://127.0.0.1:5000{self.path}", timeout=3)
+                r = requests.get(f"{target_base}{self.path}", timeout=3)
                 self.send_response(r.status_code)
                 for h, v in r.headers.items():
                     if h.lower() in ["content-type"]:
@@ -547,7 +612,16 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(r.content)
                 return
             except Exception as e:
-                err_bytes = json.dumps({"error": f"API proxy failed: {e}"}).encode("utf-8")
+                if self.path.startswith("/api/v1/testbed/option-a"):
+                    fallback_bytes = json.dumps(_handle_standalone_option_a("GET", self.path, {})).encode("utf-8")
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(fallback_bytes)))
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(fallback_bytes)
+                    return
+                err_bytes = json.dumps({"error": f"API proxy failed ({target_base}): {e}"}).encode("utf-8")
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(err_bytes)))
@@ -567,9 +641,10 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self.path.startswith("/api/v1/conflict-fabric/")):
             content_len = int(self.headers.get("Content-Length", 0))
             post_body = self.rfile.read(content_len) if content_len > 0 else b"{}"
+            target_base = (GLOBAL_CONFIG.cer_intent_url or "http://127.0.0.1:5000").rstrip("/")
             try:
                 r = requests.post(
-                    f"http://127.0.0.1:5000{self.path}",
+                    f"{target_base}{self.path}",
                     data=post_body,
                     headers={"Content-Type": "application/json"},
                     timeout=4
@@ -584,13 +659,23 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(r.content)
                 return
             except Exception as e:
-                err_bytes = json.dumps({"error": f"API POST proxy failed: {e}"}).encode("utf-8")
+                if self.path.startswith("/api/v1/testbed/option-a"):
+                    body_dict = json.loads(post_body.decode("utf-8")) if post_body else {}
+                    fallback_bytes = json.dumps(_handle_standalone_option_a("POST", self.path, body_dict)).encode("utf-8")
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(fallback_bytes)))
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(fallback_bytes)
+                    return
+                err_bytes = json.dumps({"error": f"API POST proxy failed ({target_base}): {e}"}).encode("utf-8")
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(err_bytes)))
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": f"API POST proxy failed: {e}"}).encode("utf-8"))
+                self.wfile.write(err_bytes)
                 return
         # Dedicated TSN Co-Simulation Endpoint (WiFi APs + 4 Ceragon Devices)
         if self.path == "/api/v1/digital-twin/simulate-tsn":
@@ -606,10 +691,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             hop1_rate = body.get("hop1_rate", "1Gbps")
             hop2_rate = body.get("hop2_rate", "10Gbps")
 
-            runner = TSNSimulationRunner(
-                host="efid@cersrv-029",
-                ns3_dir="/home/efid/ns3-dev"
-            )
+            runner = _create_tsn_runner(GLOBAL_CONFIG)
             use_remote = not GLOBAL_CONFIG.use_mock_ns3
             results = runner.run_tsn_simulation(
                 sim_time=sim_time,
@@ -652,7 +734,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             # Check if this is the TSN + WiFi Co-Simulation Scenario
             tsn_meta = None
             if scenario_id == "tsn_ceragon_wifi":
-                runner = TSNSimulationRunner(host="efid@cersrv-029", ns3_dir="/home/efid/ns3-dev")
+                runner = _create_tsn_runner(GLOBAL_CONFIG)
                 use_remote = not GLOBAL_CONFIG.use_mock_ns3
                 tsn_results = runner.run_tsn_simulation(
                     sim_time=float(custom_params.get("sim_time", 2.0)),
@@ -835,7 +917,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                     "physical_hw": hw_info
                 }
             elif stage == 3:
-                runner = TSNSimulationRunner(host="efid@cersrv-029", ns3_dir="/home/efid/ns3-dev")
+                runner = _create_tsn_runner(GLOBAL_CONFIG)
                 perturb_type = "traffic_surge" if scenario_id == "traffic_surge" else ("rain_degradation" if scenario_id == "channel_degradation" else "none")
                 surge_mult = float(custom_params.get("burst_factor", 3.5)) if scenario_id == "traffic_surge" else 1.0
                 rain_db = float(custom_params.get("rain_rate_mm_hr", 55.0)) * 0.4 if scenario_id == "channel_degradation" else 0.0
@@ -893,7 +975,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                 res = {
                     "stage": 5,
                     "status": "COMMITTED",
-                    "summary": "TFS 2PC Candidate Transaction Committed to Ceragon Hardware (ctu-96)",
+                    "summary": f"TFS 2PC Candidate Transaction Committed to Hardware ({GLOBAL_CONFIG.device_name})",
                     "elapsed_ms": elapsed,
                     "actuation_applied": tfs_applied
                 }
@@ -937,6 +1019,10 @@ Usage Examples:
     if args.tfs_url is not None:
         cli_overrides["tfs_url"] = args.tfs_url
         cli_overrides["use_mock_tfs"] = False
+    if getattr(args, "cer_intent_url", None) is not None:
+        cli_overrides["cer_intent_url"] = args.cer_intent_url
+    if getattr(args, "testbed_topology", None) is not None:
+        cli_overrides["testbed_topology_path"] = args.testbed_topology
     if args.device_ip is not None:
         cli_overrides["device_ip"] = args.device_ip
         cli_overrides["use_mock_hw"] = False
@@ -945,6 +1031,8 @@ Usage Examples:
     if args.ns3_host is not None:
         cli_overrides["ns3_host"] = args.ns3_host
         cli_overrides["use_mock_ns3"] = False
+    if getattr(args, "ns3_user", None) is not None:
+        cli_overrides["ns3_remote_user"] = args.ns3_user
     if args.ns3_path is not None:
         cli_overrides["ns3_path"] = args.ns3_path
     if args.port != 9200:
@@ -959,7 +1047,7 @@ Usage Examples:
     GLOBAL_GOVERNOR = SimulationResolutionGovernor()
 
     DASHBOARD_DIR.mkdir(parents=True, exist_ok=True)
-    server = HTTPServer(("0.0.0.0", GLOBAL_CONFIG.web_port), DashboardRequestHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", GLOBAL_CONFIG.web_port), DashboardRequestHandler)
 
     sep = "=" * 76
     print(f"\n{sep}")

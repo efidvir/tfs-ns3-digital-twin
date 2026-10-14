@@ -1711,6 +1711,26 @@
       "S":    { x: 560, y: 475, label: "S", sub: "Shelter Responders (TG CN)", role: "south", actor: "Actor 6 (S)" }
     };
 
+    function getTestbedNodeCoords() {
+      const coords = {};
+      if (optionAState && Array.isArray(optionAState.nodes) && optionAState.nodes.length > 0) {
+        for (const n of optionAState.nodes) {
+          const fallback = OPTION_A_COORDS[n.id] || { x: 560, y: 260, label: n.id, sub: n.name || n.id, role: n.role || "edge" };
+          coords[n.id] = {
+            x: typeof n.x === 'number' ? n.x : fallback.x,
+            y: typeof n.y === 'number' ? n.y : fallback.y,
+            label: n.id,
+            sub: n.name || fallback.sub,
+            role: n.role || fallback.role,
+            actor: n.marl_actor_id ? `Actor ${n.marl_actor_id} (${n.id})` : fallback.actor,
+            status: n.status || "online"
+          };
+        }
+        return coords;
+      }
+      return OPTION_A_COORDS;
+    }
+
     async function loadOptionAState() {
       try {
         const res = await fetch('/api/v1/testbed/option-a/state');
@@ -1744,11 +1764,16 @@
           body: JSON.stringify({ bridge_id: bridgeId })
         });
         const data = await res.json();
+        if (data.state) {
+          optionAState = data.state;
+          updateOptionAUI();
+        } else {
+          await loadOptionAState();
+        }
         const outcome = data.result?.outcome || 'UNKNOWN';
         const token = data.result?.conflict_token || 'none';
         const verified = data.result?.readback_evidence?.verified;
         alert(`MARL Bridge ${bridgeId} Actuation:\n• Status: ${outcome}\n• D2.4 Token: ${token}\n• Read-back Verified: ${verified}\n• Modulation: ${data.candidate?.modulation}`);
-        await loadOptionAState();
       } catch (e) {
         alert(`Bridge ignition error: ${e.message}`);
       }
@@ -1774,7 +1799,8 @@
         document.getElementById('stat-att-badge').textContent = '0 dB NOMINAL';
         document.getElementById('stat-att-badge').className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
       } else if (p === 'disaster_4_islands') {
-        pill.textContent = '● 2. DISASTER: 4 ISLANDS';
+        const numIslands = Array.isArray(optionAState.active_islands) ? optionAState.active_islands.length : 4;
+        pill.textContent = `● 2. DISASTER: ${numIslands} ISLANDS`;
         pill.className = 'px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse';
         desc.textContent = optionAState.phase_description || 'DISASTER CUT: Switched PDUs cut CORE & HUB. Attenuators 90 dB.';
         document.getElementById('stat-ip50-badge').textContent = '4/8 SEVERED';
@@ -1908,11 +1934,12 @@
         ctx.stroke();
       }
 
+      const nodeCoords = getTestbedNodeCoords();
       const p = optionAState ? optionAState.phase : 'normal_dpir';
       const isDisaster = p === 'disaster_4_islands' || p === 'recovered_marl_3_bridges';
       const isRecovered = p === 'recovered_marl_3_bridges';
 
-      // 2. Draw Disaster Floor Overlay if CORE & HUB are down
+      // 2. Draw Disaster Floor Overlay if any nodes are down
       if (isDisaster) {
         ctx.save();
         ctx.fillStyle = "rgba(239, 68, 68, 0.06)";
@@ -1929,7 +1956,7 @@
         ctx.restore();
       }
 
-      // 3. Draw 4 Isolated Island Outlines if disaster
+      // 3. Draw Isolated Island Outlines if disaster
       if (p === 'disaster_4_islands') {
         ctx.save();
         ctx.lineWidth = 2;
@@ -1975,8 +2002,8 @@
       // 4. Draw Links
       if (optionAState && optionAState.links) {
         for (const l of optionAState.links) {
-          const sCoord = OPTION_A_COORDS[l.source];
-          const tCoord = OPTION_A_COORDS[l.target];
+          const sCoord = nodeCoords[l.source];
+          const tCoord = nodeCoords[l.target];
           if (!sCoord || !tCoord) continue;
 
           ctx.save();
@@ -1992,14 +2019,12 @@
             ctx.lineTo(tCoord.x, tCoord.y);
             ctx.stroke();
 
-            // Severed marker in middle
             const mx = (sCoord.x + tCoord.x) / 2;
             const my = (sCoord.y + tCoord.y) / 2;
             ctx.fillStyle = "rgba(239, 68, 68, 0.8)";
             ctx.font = "bold 12px sans-serif";
             ctx.fillText("✖", mx - 5, my + 4);
           } else if (isMarlBridge) {
-            // Vibrant glowing MARL emergency bridge!
             ctx.strokeStyle = "rgba(52, 211, 153, 0.9)";
             ctx.lineWidth = 3.5;
             ctx.shadowColor = "#10b981";
@@ -2009,7 +2034,6 @@
             ctx.lineTo(tCoord.x, tCoord.y);
             ctx.stroke();
 
-            // Draw link badge
             const mx = (sCoord.x + tCoord.x) / 2;
             const my = (sCoord.y + tCoord.y) / 2;
             ctx.fillStyle = "#0f172a";
@@ -2022,7 +2046,6 @@
             ctx.textAlign = "center";
             ctx.fillText(`${l.current_modulation} (${l.snr_db}dB) ${l.steer_angle_deg}°`, mx, my + 3);
           } else if (l.media === 'microwave') {
-            // MW link (IP-50)
             ctx.strokeStyle = "rgba(56, 189, 248, 0.85)";
             ctx.lineWidth = 3;
             ctx.shadowColor = "#38bdf8";
@@ -2038,7 +2061,6 @@
             ctx.font = "9px monospace";
             ctx.fillText("MW 10G", mx - 18, my - 4);
           } else {
-            // Siklu TG 60GHz link
             ctx.strokeStyle = "rgba(251, 191, 36, 0.8)";
             ctx.lineWidth = 2;
             ctx.setLineDash([6, 4]);
@@ -2058,14 +2080,15 @@
       }
 
       // 5. Draw Candidate Bridges if in Standby
-      if (!isRecovered && optionAState && optionAState.marl_bridges) {
+      if (optionAState && optionAState.marl_bridges) {
         ctx.save();
         ctx.strokeStyle = "rgba(100, 116, 139, 0.4)";
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 6]);
         for (const b of optionAState.marl_bridges) {
-          const sCoord = OPTION_A_COORDS[b.source];
-          const tCoord = OPTION_A_COORDS[b.target];
+          if (b.status === 'ignited_active') continue;
+          const sCoord = nodeCoords[b.source];
+          const tCoord = nodeCoords[b.target];
           if (!sCoord || !tCoord) continue;
           ctx.beginPath();
           ctx.moveTo(sCoord.x, sCoord.y);
@@ -2083,8 +2106,8 @@
       }
 
       // 6. Draw Nodes
-      for (const [nodeId, coord] of Object.entries(OPTION_A_COORDS)) {
-        const isCut = isDisaster && (nodeId === 'CORE' || nodeId === 'HUB');
+      for (const [nodeId, coord] of Object.entries(nodeCoords)) {
+        const isCut = coord.status === 'down_pdu_cut' || coord.status === 'OFFLINE_PDU_CUT' || (isDisaster && !coord.status && (nodeId === 'CORE' || nodeId === 'HUB'));
 
         ctx.save();
         const nw = 140;
@@ -2107,7 +2130,6 @@
           ctx.font = "9px monospace";
           ctx.fillText("PDU POWER CUT", coord.x, coord.y + 12);
         } else {
-          // Active Node Card
           ctx.fillStyle = coord.role === 'north' || coord.role === 'south' ? "#0f172a" : "#022c22";
           ctx.strokeStyle = coord.role === 'north' || coord.role === 'south' ? "#38bdf8" : "#10b981";
           ctx.lineWidth = 2;
@@ -2134,45 +2156,17 @@
         ctx.restore();
       }
 
-      // 7. Animate Flow Particles on active links
+      // 7. Animate Flow Particles dynamically across active flows
       if (optionAState && optionAState.flows) {
+        const flowList = Object.values(optionAState.flows);
+        const palette = ["#38bdf8", "#34d399", "#fbbf24", "#a855f7", "#f472b6", "#22d3ee"];
         ctx.save();
         for (const p of optionAParticles) {
           p.progress = (p.progress + p.speed) % 1.0;
-
-          // Pick an active path
-          let pathNodes = null;
-          let particleColor = "#38bdf8";
-
-          if (isRecovered) {
-            if (p.flowIdx === 0 && optionAState.flows.F1) {
-              pathNodes = optionAState.flows.F1.path; // W1 -> W2 -> E2 -> E1
-              particleColor = "#10b981";
-            } else if (p.flowIdx === 1 && optionAState.flows.F2) {
-              pathNodes = optionAState.flows.F2.path; // W2 -> E2
-              particleColor = "#34d399";
-            } else if (p.flowIdx === 2 && optionAState.flows.svc_W1_S) {
-              pathNodes = optionAState.flows.svc_W1_S.path; // W1 -> S
-              particleColor = "#fbbf24";
-            } else if (p.flowIdx === 3 && optionAState.flows.svc_W2_N) {
-              pathNodes = optionAState.flows.svc_W2_N.path; // W2 -> E2 -> E1 -> N
-              particleColor = "#a855f7";
-            }
-          } else if (!isDisaster) {
-            if (p.flowIdx === 0 && optionAState.flows.F1) {
-              pathNodes = optionAState.flows.F1.primary_path; // W1 -> CORE -> E1
-              particleColor = "#38bdf8";
-            } else if (p.flowIdx === 1 && optionAState.flows.F2) {
-              pathNodes = optionAState.flows.F2.primary_path; // W2 -> HUB -> E2
-              particleColor = "#fbbf24";
-            } else if (p.flowIdx === 2 && optionAState.flows.svc_W1_S) {
-              pathNodes = optionAState.flows.svc_W1_S.path;
-              particleColor = "#f59e0b";
-            } else if (p.flowIdx === 3 && optionAState.flows.svc_W2_N) {
-              pathNodes = optionAState.flows.svc_W2_N.path;
-              particleColor = "#10b981";
-            }
-          }
+          if (flowList.length === 0) continue;
+          const fObj = flowList[p.flowIdx % flowList.length];
+          const pathNodes = fObj ? (fObj.path || fObj.primary_path) : null;
+          const particleColor = palette[p.flowIdx % palette.length];
 
           if (pathNodes && pathNodes.length >= 2) {
             const totalSegments = pathNodes.length - 1;
@@ -2180,8 +2174,8 @@
             const segIdx = Math.floor(segFloat);
             const segFrac = segFloat - segIdx;
 
-            const n1 = OPTION_A_COORDS[pathNodes[segIdx]];
-            const n2 = OPTION_A_COORDS[pathNodes[segIdx + 1]];
+            const n1 = nodeCoords[pathNodes[segIdx]];
+            const n2 = nodeCoords[pathNodes[segIdx + 1]];
             if (n1 && n2) {
               const px = n1.x + (n2.x - n1.x) * segFrac;
               const py = n1.y + (n2.y - n1.y) * segFrac;
@@ -2206,11 +2200,28 @@
         const data = await res.json();
         if (data.deployment) {
           const badge = document.getElementById('profile-indicator-badge');
-          badge.textContent = `● [${data.deployment.active_profile.toUpperCase()}] ${data.deployment.mode}`;
-          if (data.deployment.is_standalone) {
-            badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30";
-          } else {
-            badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30";
+          if (badge) {
+            badge.textContent = `● [${data.deployment.active_profile.toUpperCase()}] ${data.deployment.mode}`;
+            if (data.deployment.is_standalone) {
+              badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30";
+            } else {
+              badge.className = "px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30";
+            }
+          }
+        }
+        if (data.cross_repo_architecture) {
+          const arch = data.cross_repo_architecture;
+          const tfsEl = document.getElementById('tfs-status-txt');
+          if (tfsEl && arch.tfs_controller) {
+            tfsEl.textContent = `NBI: ${arch.tfs_controller.url || 'localhost:8088'} (${arch.tfs_controller.status || 'ONLINE'})`;
+          }
+          const hwEl = document.getElementById('hw-status-txt');
+          if (hwEl && arch.physical_hardware) {
+            hwEl.textContent = `${arch.physical_hardware.ip || '127.0.0.1'} (${arch.physical_hardware.device_model || '60GHz V-Band'})`;
+          }
+          const ns3El = document.getElementById('ns3-status-txt');
+          if (ns3El && arch.ns3_simulator) {
+            ns3El.textContent = `${arch.ns3_simulator.host || 'local'} (${arch.ns3_simulator.engine || 'ns-3.45'})`;
           }
         }
       } catch (e) {
