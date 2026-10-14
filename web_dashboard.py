@@ -529,8 +529,11 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(get_restconf_wire_log(GLOBAL_CONFIG)).encode("utf-8"))
             return
 
-        # 7. D3.1 IETF RESTCONF API & D5.1 TM Forum Proxy (Section 3.4.1, 4.2.4, 4.2.5)
-        if self.path.startswith("/restconf/") or self.path.startswith("/api/v1/tmf/") or self.path.startswith("/api/v1/intent"):
+        # 7. D3.1 IETF RESTCONF API, D5.1 TM Forum & D2.4 Conflict Fabric Proxy
+        if (self.path.startswith("/restconf/") or 
+            self.path.startswith("/api/v1/tmf/") or 
+            self.path.startswith("/api/v1/intent") or 
+            self.path.startswith("/api/v1/conflict-fabric/")):
             try:
                 r = requests.get(f"http://localhost:5000{self.path}", timeout=3)
                 self.send_response(r.status_code)
@@ -552,8 +555,11 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
-        # D3.1 IETF RESTCONF Operations & D5.1 TM Forum / Intent Operations Proxy
-        if self.path.startswith("/restconf/") or self.path.startswith("/api/v1/tmf/") or self.path.startswith("/api/v1/intent"):
+        # D3.1 IETF RESTCONF Operations, D5.1 TM Forum & D2.4 Conflict Fabric Proxy
+        if (self.path.startswith("/restconf/") or 
+            self.path.startswith("/api/v1/tmf/") or 
+            self.path.startswith("/api/v1/intent") or 
+            self.path.startswith("/api/v1/conflict-fabric/")):
             content_len = int(self.headers.get("Content-Length", 0))
             post_body = self.rfile.read(content_len) if content_len > 0 else b"{}"
             try:
