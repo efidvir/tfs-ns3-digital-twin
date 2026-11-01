@@ -161,6 +161,17 @@ The digital twin pairs NS-3 discrete-event queueing with analytical physics mode
 - **Carrier Path Loss & Atmospheric Absorption**: Models free-space path loss ($FSPL$) and oxygen absorption ($\sim 15\text{ dB/km}$ at 60 GHz).
 - **Hitless ACM State Machine**: Dynamically switches modulation from MCS 12 down to MCS 0 (BPSK) to preserve link availability at the cost of reduced throughput.
 
+### 7.1 Native NS-3.45 Ceragon Portfolio Functional Twin Module (`contrib/ceragon`)
+
+This repository includes the native **ns-3.45 C++20 contributed module** ([`ns3_ceragon/contrib/ceragon/`](ns3_ceragon/contrib/ceragon/README.md) & [`simulation/contrib/ceragon/`](simulation/contrib/ceragon/README.md)), twinning all **31 explicit Ceragon/Siklu hardware models + 5 family fallbacks** (`IP-20`, `IP-50`, `IP-100`, `EtherHaul`, `MultiHaul TG`) across all **12 transport control domains**:
+
+- **Full Portfolio & Feature Gating (`ceragon-portfolio.{h,cc}`)**: Hardware-accurate resolution for `IP-20C/C-HP/S/E/V/N/A/A-LH/G/GX`, `IP-50C/CX/E/EX/EXA/FX`, `IP-100E`, `EH-614TX/710TX/1200TX/1200FX/2500FX/8010FX/8020FX`, and `MH-T261/T260/T265/T280/N265/N366/N367` (`MH-T261` lab-verified).
+- **ITU-R Propagation & Weather (`ceragon-propagation.{h,cc}`)**: ITU-R P.525 FSPL, ITU-R P.676-13 gaseous absorption (60 GHz $O_2$ peak & 22 GHz $H_2O$ line), ITU-R P.838-3 rain attenuation, ITU-R P.530-17 effective path reduction & XPD depolarization, and time-varying `CeragonWeatherModel`.
+- **Hitless ACM, XPIC & Multi-Band Bonding (`ceragon-acm.{h,cc}`, `ceragon-radio-channel.{h,cc}`)**: 12-step CeraOS MRMC (`BPSK`..`4096QAM`) and Siklu 802.11ad (`MCS1`..`MCS12`) with hysteresis, XPIC `2+0` cross-pol cancellation, and `IP-50EX` Multi-Band L1 carrier bonding (E-Band + Microwave anchor).
+- **Resilience & 60 GHz Phased-Array Beamforming (`ceragon-radio-net-device.{h,cc}`)**: `1+1 HSB`, `Space Diversity`, and Terragraph `active-backup` protection (`< 50 ms` switchover); 60 GHz wind pole sway, auto-beam tracking, and `start-topo-scan` RPC emulation.
+- **Deterministic QoS, TSN, Security, Timing & O-RAN (`ceragon-qos-queue-disc.{h,cc}`, `ceragon-oran-xhaul.{h,cc}`)**: 8-CoS SP+DRR scheduler with per-slice PIR shapers, IEEE 802.1Qbv Time-Aware Shaper (GCL), and IEEE 802.1Qbu frame preemption; AES-128/256-GCM MACsec overhead; Green-ATPC + low-load secondary carrier sleep; ITU-T G.8275.1 PTP + SyncE time error (`cTE`, `dTE`, holdover); and O-RAN Split 7.2x eCPRI BFP9 dimensioning.
+- **Detailed Guide & Sphinx Manual**: See [`docs/CERAGON_NS3_FUNCTIONAL_TWIN_GUIDE.md`](docs/CERAGON_NS3_FUNCTIONAL_TWIN_GUIDE.md) and [`ns3_ceragon/contrib/ceragon/doc/ceragon.rst`](ns3_ceragon/contrib/ceragon/doc/ceragon.rst).
+
 ---
 
 ## 8. Repository Structure
@@ -174,6 +185,13 @@ tfs-ns3-digital-twin/
 ├── web_dashboard.py                       # Standalone Cross-Repo Web Dashboard Server (:9200)
 ├── dashboard/                             # Interactive Web Dashboard frontend
 │   └── index.html                         # Full 5-stage closed-loop operational UI
+├── ns3_ceragon/                           # NS-3.45 Ceragon Portfolio Functional Twin
+│   ├── contrib/ceragon/                   # C++20 module (model/, helper/, test/, examples/, doc/)
+│   ├── tools/tfs_to_ceragon_twin.py       # TFS / CER-Intent JSON -> .twin topology converter
+│   └── deploy_to_ns3.sh                   # One-step installer & builder for ns-3.45
+├── simulation/                            # NS-3 C++ simulation sources
+│   ├── tsn_wifi_ceragon.cc                # Discrete-event TSN + WiFi + Ceragon scenario
+│   └── contrib/ceragon/                   # Mirror of contrib/ceragon NS-3 module
 ├── figures/                               # Vector & raster diagram assets
 │   ├── digital_twin_mirror_concept.svg
 │   ├── generic_telecom_simulation_taxonomy.svg
@@ -186,19 +204,24 @@ tfs-ns3-digital-twin/
 │   ├── tfs_digital_twin_api.py            # 5-Layer Telecom Digital Twin REST Server
 │   ├── tfs_api_client.py                  # Northbound REST API client for TFS
 │   ├── tfs_topology_to_ns3.py             # C++ NS-3 scenario & topology generator
+│   ├── tfs_to_ceragon_twin.py             # Declarative .twin topology converter
+│   ├── ceragon_ns3_twin_runner.py         # Remote SSH runner for ns3.45-ceragon-twin-default
 │   └── ns3_tfs_runtime_bridge.py          # Runtime co-simulation daemon (:9099)
 ├── examples/                              # Verification harnesses
 │   ├── demo_telecom_digital_twin.py       # Multi-domain closed-loop demonstration
 │   └── demo_ns3_tfs_control.py            # Telemetry extraction & control dispatch
 ├── data/                                  # Topology descriptors
-│   └── 6g_transport_tfs_descriptors.json  # 34-Node O-RAN transport network
+│   ├── 6g_transport_tfs_descriptors.json  # 34-Node O-RAN transport network
+│   └── topology_state.json                # Synchronized Ceragon transport topology
 ├── docs/                                  # Detailed architecture specifications
 │   ├── ARCHITECTURE.md                    # Deep dive into the 5-layer API stack
+│   ├── CERAGON_NS3_FUNCTIONAL_TWIN_GUIDE.md # NS-3.45 contrib/ceragon technical guide
 │   ├── STANDARDS_COMPLIANCE.md            # Mapping table for 3GPP, ITU-T, IETF, TMF
 │   └── OPENAPI_SPECIFICATION.yaml         # OpenAPI 3.1 REST API schema
 └── tests/                                 # Unit tests
     ├── __init__.py
-    └── test_digital_twin.py               # Automated test suite (8/8 passing)
+    ├── test_digital_twin.py               # Automated DTI test suite (8/8 passing)
+    └── test_ceragon_ns3_twin.py           # NS-3 Ceragon functional twin & converter tests
 ```
 
 ---
@@ -309,11 +332,20 @@ python -m unittest tests/test_resolution_governor.py
 
 # Run Deployment Profiles tests (4/4 passing):
 python -m unittest tests/test_deployment_profiles.py
+
+# Run NS-3.45 Ceragon Portfolio Functional Twin tests (3/3 passing):
+python -m unittest tests/test_ceragon_ns3_twin.py -v
+```
+
+### Deploying the Native `contrib/ceragon` Module into NS-3.45:
+```bash
+./ns3_ceragon/deploy_to_ns3.sh /home/efid/ns3-dev --tests
 ```
 
 ### Generating NS-3 C++ Simulation Scenarios:
 ```bash
 python tfs_topology_to_ns3.py --context admin --topology admin --wireless --traffic --output scratch/tfs_sim.cc
+python ns3_ceragon/tools/tfs_to_ceragon_twin.py --input data/topology_state.json --output metro.twin --rain 3,6,90 --auto-flows 3
 ```
 
 ---
@@ -326,6 +358,9 @@ python tfs_topology_to_ns3.py --context admin --topology admin --wireless --traf
 | `POST` | `/api/v1/dti/instances` | 3GPP TS 28.561 | Creates and initializes a new NDTI instance. |
 | `POST` | `/api/v1/dti/sync` | ITU-T Y.3090 | Synchronizes twin shadow with physical hardware via TFS. |
 | `POST` | `/api/v1/dti/scenarios` | IETF NMRG DTI | Evaluates multi-domain what-if scenario perturbations in NS-3. |
+| `GET` | `/api/v1/dti/ceragon/portfolio` | NS-3.45 `contrib/ceragon` | Returns all 31 explicit Ceragon/Siklu models + 5 family fallbacks compiled in NS-3. |
+| `GET` | `/api/v1/dti/ceragon/topology` | NS-3.45 `contrib/ceragon` | Exports active TFS / CER-Intent topology as a declarative `.twin` specification. |
+| `POST` | `/api/v1/dti/ceragon/run` | NS-3.45 `contrib/ceragon` | Executes live NS-3.45 Ceragon portfolio functional twin simulation over SSH. |
 | `POST` | `/api/v1/dti/validate-and-commit` | TFS 2PC | Safety-checks candidate mitigation and actuates physical network. |
 | `POST` | `/api/v1/tmf/tmf921/intent` | TM Forum ODA | Ingests high-level declarative SLA intents. |
 | `GET` | `/api/v1/tmf/tmf639/resource` | TM Forum ODA | Returns standardized resource inventory projection. |

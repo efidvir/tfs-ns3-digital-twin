@@ -567,6 +567,29 @@ class DigitalTwinHttpHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(tmf_resources, indent=2).encode("utf-8"))
             return
 
+        # 5. NS-3.45 Ceragon Functional Twin Portfolio & Topology
+        elif path in ("/api/v1/dti/ceragon/portfolio", "/api/v1/digital-twin/ceragon/portfolio"):
+            try:
+                from ceragon_ns3_twin_runner import CeragonNs3TwinRunner
+                items = CeragonNs3TwinRunner().portfolio()
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"count": len(items), "models": items}, indent=2).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(502)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+            return
+
+        elif path in ("/api/v1/dti/ceragon/topology", "/api/v1/digital-twin/ceragon/topology"):
+            try:
+                from ceragon_ns3_twin_runner import CeragonNs3TwinRunner
+                text = CeragonNs3TwinRunner().build_twin_text()
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"topology": text}, indent=2).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+            return
+
         else:
             self._set_headers(404)
             self.wfile.write(b'{"error": "Endpoint not found"}')
@@ -667,6 +690,29 @@ class DigitalTwinHttpHandler(BaseHTTPRequestHandler):
                 "targetSLA": intent_spec.get("target_sla", {"max_latency_ms": 1.5, "min_availability_pct": 99.999})
             }
             self.wfile.write(json.dumps(response, indent=2).encode("utf-8"))
+            return
+
+        # 6. NS-3.45 Ceragon Functional Twin Simulation Execution
+        elif path in ("/api/v1/dti/ceragon/run", "/api/v1/digital-twin/ceragon/run"):
+            try:
+                from ceragon_ns3_twin_runner import CeragonNs3TwinRunner
+                runner = CeragonNs3TwinRunner()
+                sim_time = float(data.get("sim_time", 6.0))
+                if data.get("twin_text"):
+                    report = runner.run(str(data["twin_text"]), sim_time=sim_time)
+                else:
+                    report = runner.run_from_cer_topology(
+                        sim_time=sim_time,
+                        rain=data.get("rain"),
+                        flows=data.get("flows"),
+                        events=data.get("events"),
+                        auto_flows=int(data.get("auto_flows", 2)),
+                    )
+                self._set_headers(200)
+                self.wfile.write(json.dumps(report, indent=2).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(502)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
             return
 
         else:
