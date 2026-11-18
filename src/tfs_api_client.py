@@ -133,6 +133,14 @@ class TfsApiClient:
     # 2. Topology Model Ingestion (for NS-3)
     # =========================================================================
 
+    def get_rfc8345_networks(self) -> Dict[str, Any]:
+        """RFC 8345 topology from TeraFlowSDN's ietf-network interface (HTTP basic auth)."""
+        url = f"{self.rest_url}/restconf/data/ietf-network:networks/"
+        auth = (os.getenv("TFS_USERNAME", "admin"), os.getenv("TFS_PASSWORD", "admin"))
+        resp = self._session.get(url, auth=auth, timeout=self.timeout)
+        resp.raise_for_status()
+        return resp.json()
+
     def get_topology_model(self, context_name: str = "admin", topology_name: str = "admin") -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Retrieves the normalized topology model:
