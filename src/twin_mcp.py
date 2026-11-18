@@ -12,7 +12,8 @@ rests on (sync time, topology source, engine): a prediction, not a measurement.
 With TWIN_URL set, the tools use that twin's HTTP API, so the MCP tools and the
 HTTP API share one twin; without it they run a twin in this process.
 """
-from __future__ import annotations
+# Annotations stay real types (no `from __future__ import annotations`): MCP SDK 1.x
+# inspects them with issubclass() when it builds the tool schemas.
 
 import argparse
 import os
