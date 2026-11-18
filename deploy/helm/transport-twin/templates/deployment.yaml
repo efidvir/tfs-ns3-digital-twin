@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "transport-twin.name" . }}
+  labels: {{- include "transport-twin.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{- include "transport-twin.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "transport-twin.labels" . | nindent 8 }}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001}
+      containers:
+        - name: twin-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env: {{- include "transport-twin.env" . | nindent 12 }}
+          {{- if .Values.teraflow.credentialsSecret }}
+          envFrom:
+            - secretRef: {name: {{ .Values.teraflow.credentialsSecret }}}
+          {{- end }}
+          ports: [{name: http, containerPort: {{ .Values.twin.port }}}]
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 30
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.mcp.enabled }}
+        - name: twin-mcp
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "src/twin_mcp.py", "--transport", "streamable-http", "--host", "0.0.0.0",
+                    "--port", {{ .Values.mcp.port | quote }}]
+          env:
+            # the MCP tools use the API container's twin, so both share one twin state
+            - name: TWIN_URL
+              value: "http://127.0.0.1:{{ .Values.twin.port }}"
+          ports: [{name: mcp, containerPort: {{ .Values.mcp.port }}}]
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+        {{- end }}

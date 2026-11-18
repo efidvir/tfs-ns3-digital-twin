@@ -31,6 +31,11 @@ from urllib.parse import urlparse, parse_qs
 
 # Import TFS Northbound client from tfs-unity
 from tfs_api_client import TfsApiClient
+from rfc8345_import import to_twin_topology
+
+# Where the twin reads the topology: "tfs-api" (TFS's own API, default) or
+# "rfc8345" (the IETF ietf-network interface, as other ETSI components read it).
+TOPOLOGY_SOURCE = os.getenv("TWIN_TOPOLOGY_SOURCE", "tfs-api").strip().lower()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -64,6 +69,7 @@ class NetworkDigitalTwinInstance:
         self.created_at = time.time()
         self.last_sync_time = 0.0
         self.tfs_client = tfs_client
+        self.topology_source = "none"
         
         # Twin state shadow (synchronized with physical Ceragon hardware via TFS)
         self.topology_shadow: Dict[str, Any] = {}
@@ -83,7 +89,16 @@ class NetworkDigitalTwinInstance:
         """Layer 1: Synchronize twin state with physical network via TFS."""
         with self._lock:
             self.state = NDTIState.UPDATING
-            topo_res = self.tfs_client.get_topology_model()
+            topo_res = None
+            if TOPOLOGY_SOURCE == "rfc8345":
+                try:
+                    topo_res = to_twin_topology(self.tfs_client.get_rfc8345_networks())
+                    self.topology_source = "rfc8345"
+                except Exception as e:
+                    logger.warning(f"RFC 8345 topology unavailable ({e}); reading the TFS API instead")
+            if topo_res is None:
+                topo_res = self.tfs_client.get_topology_model()
+                self.topology_source = "tfs-api"
             if isinstance(topo_res, tuple):
                 nodes, links = topo_res
                 self.topology_shadow = {"nodes": nodes, "links": links}
@@ -105,7 +120,8 @@ class NetworkDigitalTwinInstance:
                 "state": self.state,
                 "nodes_count": len(self.topology_shadow.get("nodes", [])),
                 "links_count": len(self.topology_shadow.get("links", [])),
-                "last_sync_timestamp": self.last_sync_time
+                "last_sync_timestamp": self.last_sync_time,
+                "topology_source": self.topology_source,
             }
 
     def execute_what_if_scenario(self, scenario_req: Dict[str, Any]) -> Dict[str, Any]:
@@ -354,6 +370,13 @@ class NetworkDigitalTwinInstance:
                 "scenario_id": scenario_id,
                 "instance_id": self.instance_id,
                 "timestamp": time.time(),
+                # Twin answers are predictions: label them, and say what they rest on.
+                "insight": "simulated",
+                "basis": {
+                    "twin_synced_at": self.last_sync_time,
+                    "topology_source": self.topology_source,
+                    "engine": engine,
+                },
                 "base_state": base_state,
                 "domain": domain,
                 "engine": engine,
@@ -468,6 +491,15 @@ class DigitalTwinHttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urlparse(self.path)
         path = url.path.rstrip("/")
+        if path == "/healthz":
+            ndti = self.ndti_manager.get(self.default_ndti_id)
+            self._set_headers(200)
+            self.wfile.write(json.dumps({
+                "status": "ok",
+                "twin_state": ndti.state if ndti else "absent",
+                "topology_source": ndti.topology_source if ndti else None,
+            }).encode("utf-8"))
+            return
         
         # 1. Health / Root
         if path == "" or path == "/health":
@@ -638,7 +670,8 @@ class DigitalTwinHttpHandler(BaseHTTPRequestHandler):
             return
 
         # 3. Layer 2: DTI What-If Scenario Evaluation (IETF NMRG / NS-3)
-        elif path == "/api/v1/dti/scenarios":
+        #    /what-if is the short form other tools call (e.g. CER-Intent's MCP tool).
+        elif path in ("/api/v1/dti/scenarios", "/what-if"):
             iid = data.get("instance_id", self.default_ndti_id)
             ndti = self.ndti_manager.get(iid)
             if not ndti:
@@ -724,9 +757,13 @@ def run_digital_twin_server(port: int = 9100, tfs_host: str = "localhost", tfs_p
     """Starts the Telecom Digital Twin API daemon."""
     rest_url = f"http://{tfs_host}:{tfs_port}"
     if not descriptor_fallback_path:
-        default_fb = r"c:\CER_Intent\data\6g_transport_tfs_descriptors.json"
-        if os.path.exists(default_fb):
-            descriptor_fallback_path = default_fb
+        candidates = [
+            os.getenv("TWIN_DESCRIPTORS", ""),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "6g_transport_tfs_descriptors.json"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "6g_transport_tfs_descriptors.json"),
+            r"c:\CER_Intent\data\6g_transport_tfs_descriptors.json",
+        ]
+        descriptor_fallback_path = next((c for c in candidates if c and os.path.exists(c)), None)
             
     tfs_client = TfsApiClient(rest_url=rest_url, descriptor_fallback_path=descriptor_fallback_path)
     
@@ -737,7 +774,10 @@ def run_digital_twin_server(port: int = 9100, tfs_host: str = "localhost", tfs_p
         scope="transport-oran-backhaul",
         tfs_client=tfs_client
     )
-    default_ndti.sync_from_physical()
+    try:
+        default_ndti.sync_from_physical()
+    except Exception as e:  # start anyway; POST /api/v1/dti/sync retries
+        logger.warning(f"Initial twin sync failed ({e}); the twin starts unsynchronized")
     
     DigitalTwinHttpHandler.tfs_client = tfs_client
     DigitalTwinHttpHandler.ndti_manager[default_ndti.instance_id] = default_ndti
@@ -760,7 +800,7 @@ def run_digital_twin_server(port: int = 9100, tfs_host: str = "localhost", tfs_p
 
 
 if __name__ == "__main__":
-    port = 9100
+    port = int(os.getenv("TWIN_PORT", "9100"))
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
     run_digital_twin_server(port=port)

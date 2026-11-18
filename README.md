@@ -379,3 +379,10 @@ If using this framework in academic research or industrial implementations, plea
   note = {Standards-based 3GPP TS 28.561, ITU-T Y.3090, and IETF NMRG DTI Co-Simulation}
 }
 ```
+
+## Running next to the ETSI stack
+
+* **Topology from RFC 8345.** With `TWIN_TOPOLOGY_SOURCE=rfc8345` the twin reads TeraFlowSDN's `ietf-network:networks` interface (the one other ETSI components use) through `src/rfc8345_import.py`, and falls back to the TFS API if that interface is not available. Link capacity comes from the RFC 8795 TE attributes; links on `rf-sector-*` ports are marked wireless.
+* **What-if answers are labelled.** Every scenario result carries `"insight": "simulated"` and a `basis` (last sync, topology source, engine). `POST /what-if` is the short route other tools call; `GET /healthz` reports the twin state.
+* **MCP tools.** `python src/twin_mcp.py --transport streamable-http --port 8766` offers `list_simulators`, `sync_twin`, `get_twin_state` and `run_what_if`. With `TWIN_URL` set, the tools use that twin's HTTP API, so both share one twin.
+* **Container and chart.** `Dockerfile` builds the image (HTTP API on 9100, MCP on 8766); `deploy/helm/transport-twin` deploys both containers in one pod, pointed at the TeraFlowSDN NBI (`teraflow.url`).

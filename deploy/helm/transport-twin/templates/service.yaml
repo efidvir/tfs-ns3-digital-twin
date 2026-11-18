@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "transport-twin.name" . }}
+  labels: {{- include "transport-twin.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "transport-twin.labels" . | nindent 4 }}
+  ports:
+    - {name: http, port: {{ .Values.twin.port }}, targetPort: http}
+    {{- if .Values.mcp.enabled }}
+    - {name: mcp, port: {{ .Values.mcp.port }}, targetPort: mcp}
+    {{- end }}
