@@ -23,6 +23,9 @@ import requests
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("TfsApiClient")
 
+# How the twin introduces itself to TeraFlowSDN (shows up in controller and stand-in logs).
+USER_AGENT = "tfs-ns3-digital-twin/1.0"
+
 
 class TfsApiClient:
     """Universal Northbound Client for ETSI TeraFlowSDN."""
@@ -47,11 +50,14 @@ class TfsApiClient:
         self._session.headers.update({
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "User-Agent": USER_AGENT,
         })
         if self.token:
             self._session.headers["Authorization"] = f"Bearer {self.token}"
 
         self._cached_descriptors: Optional[Dict[str, Any]] = None
+        # Where the last topology came from: "tfs-api" or "descriptors" (offline file)
+        self.last_topology_origin: Optional[str] = None
         if self.descriptor_fallback_path and os.path.exists(self.descriptor_fallback_path):
             try:
                 with open(self.descriptor_fallback_path, "r", encoding="utf-8") as f:
@@ -133,6 +139,14 @@ class TfsApiClient:
     # 2. Topology Model Ingestion (for NS-3)
     # =========================================================================
 
+    def get_rfc8345_networks(self) -> Dict[str, Any]:
+        """RFC 8345 topology from TeraFlowSDN's ietf-network interface (HTTP basic auth)."""
+        url = f"{self.rest_url}/restconf/data/ietf-network:networks/"
+        auth = (os.getenv("TFS_USERNAME", "admin"), os.getenv("TFS_PASSWORD", "admin"))
+        resp = self._session.get(url, auth=auth, timeout=self.timeout)
+        resp.raise_for_status()
+        return resp.json()
+
     def get_topology_model(self, context_name: str = "admin", topology_name: str = "admin") -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Retrieves the normalized topology model:
@@ -146,6 +160,7 @@ class TfsApiClient:
             resp = self._session.get(url, timeout=self.timeout)
             if resp.status_code == 200:
                 data = resp.json()
+                self.last_topology_origin = "tfs-api"
                 return self._parse_topology_json(data)
         except Exception as e:
             logger.debug(f"REST get_topology_model error: {e}")
@@ -153,6 +168,7 @@ class TfsApiClient:
         # Fallback to local descriptors
         if self._cached_descriptors:
             logger.info("Extracting topology model from offline descriptors fallback.")
+            self.last_topology_origin = "descriptors"
             return self._parse_topology_json(self._cached_descriptors)
 
         raise RuntimeError(f"Could not retrieve topology {context_name}/{topology_name} via REST or local descriptors.")
@@ -238,6 +254,22 @@ class TfsApiClient:
     # =========================================================================
     # 3. Reading Live Telemetry from Ceragon Devices
     # =========================================================================
+
+    def get_device_details(self, device_uuid: str) -> Optional[Dict[str, Any]]:
+        """The device as TeraFlowSDN reports it (TFS-API), or None when it does not answer."""
+        try:
+            resp = self._session.get(f"{self.rest_url}/tfs-api/device/{device_uuid}", timeout=self.timeout)
+        except requests.RequestException as e:
+            logger.debug(f"REST get_device_details error: {e}")
+            return None
+        return resp.json() if resp.status_code == 200 else None
+
+    def list_services(self, context_name: str = "admin") -> List[Dict[str, Any]]:
+        """Services provisioned in a TeraFlowSDN context (TFS-API)."""
+        resp = self._session.get(f"{self.rest_url}/tfs-api/context/{context_name}/services", timeout=self.timeout)
+        resp.raise_for_status()
+        body = resp.json()
+        return body.get("services", []) if isinstance(body, dict) else list(body or [])
 
     def get_device_telemetry(self, device_uuid: str) -> Dict[str, Any]:
         """
