@@ -23,6 +23,9 @@ import requests
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("TfsApiClient")
 
+# How the twin introduces itself to TeraFlowSDN (shows up in controller and stand-in logs).
+USER_AGENT = "tfs-ns3-digital-twin/1.0"
+
 
 class TfsApiClient:
     """Universal Northbound Client for ETSI TeraFlowSDN."""
@@ -47,6 +50,7 @@ class TfsApiClient:
         self._session.headers.update({
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "User-Agent": USER_AGENT,
         })
         if self.token:
             self._session.headers["Authorization"] = f"Bearer {self.token}"
@@ -250,6 +254,22 @@ class TfsApiClient:
     # =========================================================================
     # 3. Reading Live Telemetry from Ceragon Devices
     # =========================================================================
+
+    def get_device_details(self, device_uuid: str) -> Optional[Dict[str, Any]]:
+        """The device as TeraFlowSDN reports it (TFS-API), or None when it does not answer."""
+        try:
+            resp = self._session.get(f"{self.rest_url}/tfs-api/device/{device_uuid}", timeout=self.timeout)
+        except requests.RequestException as e:
+            logger.debug(f"REST get_device_details error: {e}")
+            return None
+        return resp.json() if resp.status_code == 200 else None
+
+    def list_services(self, context_name: str = "admin") -> List[Dict[str, Any]]:
+        """Services provisioned in a TeraFlowSDN context (TFS-API)."""
+        resp = self._session.get(f"{self.rest_url}/tfs-api/context/{context_name}/services", timeout=self.timeout)
+        resp.raise_for_status()
+        body = resp.json()
+        return body.get("services", []) if isinstance(body, dict) else list(body or [])
 
     def get_device_telemetry(self, device_uuid: str) -> Dict[str, Any]:
         """

@@ -26,7 +26,7 @@ import uuid
 import logging
 import threading
 from typing import Dict, Any, List, Optional
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 # Import TFS Northbound client from tfs-unity
@@ -613,6 +613,16 @@ class DigitalTwinHttpHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
             return
 
+        elif path in ("/api/v1/dti/ceragon/engine", "/api/v1/digital-twin/ceragon/engine"):
+            try:
+                from ceragon_ns3_twin_runner import CeragonNs3TwinRunner
+                self._set_headers(200)
+                self.wfile.write(json.dumps(CeragonNs3TwinRunner().describe(), indent=2).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+            return
+
         elif path in ("/api/v1/dti/ceragon/topology", "/api/v1/digital-twin/ceragon/topology"):
             try:
                 from ceragon_ns3_twin_runner import CeragonNs3TwinRunner
@@ -750,6 +760,31 @@ class DigitalTwinHttpHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
             return
 
+        # 7. Pre-flight of a transport slice: two ns-3 runs (before / after) and an SLO verdict
+        elif path in ("/api/v1/dti/ceragon/preflight", "/api/v1/digital-twin/ceragon/preflight"):
+            iid = data.get("instance_id", self.default_ndti_id)
+            ndti = self.ndti_manager.get(iid)
+            if not ndti:
+                self._set_headers(404)
+                self.wfile.write(b'{"error": "NDTI instance not found"}')
+                return
+            try:
+                from ceragon_ns3_twin_runner import CeragonNs3TwinRunner
+                from ceragon_preflight import run_preflight
+                if data.get("sync"):
+                    ndti.sync_from_physical()
+                res = run_preflight(ndti, CeragonNs3TwinRunner(), data)
+                self._set_headers(200)
+                self.wfile.write(json.dumps(res, indent=2).encode("utf-8"))
+            except ValueError as exc:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+            except Exception as exc:
+                logger.exception("pre-flight failed")
+                self._set_headers(502)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+            return
+
         else:
             self._set_headers(404)
             self.wfile.write(b'{"error": "Endpoint not found"}')
@@ -785,7 +820,7 @@ def run_digital_twin_server(port: int = 9100, tfs_host: str = "localhost", tfs_p
     DigitalTwinHttpHandler.ndti_manager[default_ndti.instance_id] = default_ndti
     
     server_address = ("0.0.0.0", port)
-    httpd = HTTPServer(server_address, DigitalTwinHttpHandler)
+    httpd = ThreadingHTTPServer(server_address, DigitalTwinHttpHandler)  # NS-3 runs take seconds
     logger.info(f"================================================================")
     logger.info(f"  Telecom Digital Twin API Server (DTI) started on port {port}")
     logger.info(f"  Standards: 3GPP TS 28.561 | ITU-T Y.3090 | IETF NMRG | CAPIF")
