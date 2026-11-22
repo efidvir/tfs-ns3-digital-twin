@@ -98,7 +98,9 @@ class NetworkDigitalTwinInstance:
                     logger.warning(f"RFC 8345 topology unavailable ({e}); reading the TFS API instead")
             if topo_res is None:
                 topo_res = self.tfs_client.get_topology_model()
-                self.topology_source = "tfs-api"
+                # The client says whether TFS answered or its offline descriptor file did.
+                origin = getattr(self.tfs_client, "last_topology_origin", None)
+                self.topology_source = origin if isinstance(origin, str) and origin else "tfs-api"
             if isinstance(topo_res, tuple):
                 nodes, links = topo_res
                 self.topology_shadow = {"nodes": nodes, "links": links}

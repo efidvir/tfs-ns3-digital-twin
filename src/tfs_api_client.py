@@ -52,6 +52,8 @@ class TfsApiClient:
             self._session.headers["Authorization"] = f"Bearer {self.token}"
 
         self._cached_descriptors: Optional[Dict[str, Any]] = None
+        # Where the last topology came from: "tfs-api" or "descriptors" (offline file)
+        self.last_topology_origin: Optional[str] = None
         if self.descriptor_fallback_path and os.path.exists(self.descriptor_fallback_path):
             try:
                 with open(self.descriptor_fallback_path, "r", encoding="utf-8") as f:
@@ -154,6 +156,7 @@ class TfsApiClient:
             resp = self._session.get(url, timeout=self.timeout)
             if resp.status_code == 200:
                 data = resp.json()
+                self.last_topology_origin = "tfs-api"
                 return self._parse_topology_json(data)
         except Exception as e:
             logger.debug(f"REST get_topology_model error: {e}")
@@ -161,6 +164,7 @@ class TfsApiClient:
         # Fallback to local descriptors
         if self._cached_descriptors:
             logger.info("Extracting topology model from offline descriptors fallback.")
+            self.last_topology_origin = "descriptors"
             return self._parse_topology_json(self._cached_descriptors)
 
         raise RuntimeError(f"Could not retrieve topology {context_name}/{topology_name} via REST or local descriptors.")

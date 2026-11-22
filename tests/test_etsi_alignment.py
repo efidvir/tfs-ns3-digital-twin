@@ -104,6 +104,23 @@ class TestTwinSyncAndLabels(unittest.TestCase):
         twin = self._twin(FakeTFS(rfc8345_ok=False))
         self.assertEqual(twin.sync_from_physical()["topology_source"], "tfs-api")
 
+    def test_offline_descriptor_fallback_is_named_in_the_basis(self):
+        import tempfile
+        from tfs_api_client import TfsApiClient
+        twin_api.TOPOLOGY_SOURCE = "tfs-api"
+        descriptors = {"devices": [{"device_id": {"device_uuid": {"uuid": "radio-a"}}, "device_type": "ceragon-wireless"}],
+                       "links": []}
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump(descriptors, f)
+        try:
+            client = TfsApiClient(rest_url="http://127.0.0.1:9", timeout=1, descriptor_fallback_path=f.name)
+            twin = self._twin(client)
+            self.assertEqual(twin.sync_from_physical()["topology_source"], "descriptors")
+            res = twin.execute_what_if_scenario({"perturbations": [], "engine": "analytical"})
+            self.assertEqual(res["basis"]["topology_source"], "descriptors")
+        finally:
+            os.unlink(f.name)
+
     def test_what_if_answers_are_labelled_simulated(self):
         twin_api.TOPOLOGY_SOURCE = "rfc8345"
         twin = self._twin(FakeTFS())
