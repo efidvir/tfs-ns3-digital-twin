@@ -10,11 +10,19 @@ spec:
   template:
     metadata:
       labels: {{- include "transport-twin.labels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       securityContext: {runAsNonRoot: true, runAsUser: 10001}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          configMap: {name: {{ include "transport-twin.name" . }}-config}
       containers:
         - name: twin-api
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "transport-twin.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env: {{- include "transport-twin.env" . | nindent 12 }}
           {{- if .Values.teraflow.credentialsSecret }}
@@ -22,6 +30,8 @@ spec:
             - secretRef: {name: {{ .Values.teraflow.credentialsSecret }}}
           {{- end }}
           ports: [{name: http, containerPort: {{ .Values.twin.port }}}]
+          volumeMounts:
+            - {name: config, mountPath: /etc/twin, readOnly: true}
           readinessProbe:
             httpGet: {path: /healthz, port: http}
             periodSeconds: 10
@@ -31,7 +41,7 @@ spec:
           resources: {{- toYaml .Values.resources | nindent 12 }}
         {{- if .Values.mcp.enabled }}
         - name: twin-mcp
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "transport-twin.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["python", "src/twin_mcp.py", "--transport", "streamable-http", "--host", "0.0.0.0",
                     "--port", {{ .Values.mcp.port | quote }}]

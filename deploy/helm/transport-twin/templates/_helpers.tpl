@@ -10,4 +10,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
   value: {{ .Values.twin.topologySource | quote }}
 - name: TWIN_PORT
   value: {{ .Values.twin.port | quote }}
+- name: NS3_TWIN_MODE
+  value: {{ .Values.twin.ns3Mode | quote }}
+- name: TWIN_SITE_PLAN
+  value: /etc/twin/site_plan.json
 {{- end -}}
+{{- define "transport-twin.image" -}}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}{{- end -}}

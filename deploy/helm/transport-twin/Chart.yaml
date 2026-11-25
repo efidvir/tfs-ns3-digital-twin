@@ -1,6 +1,7 @@
 apiVersion: v2
 name: transport-twin
-description: Transport digital twin (HTTP what-if API and MCP tools) next to TeraFlowSDN
+description: Transport digital twin (HTTP what-if and pre-flight API, MCP tools) with NS-3.45 and the Ceragon module, next to TeraFlowSDN
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.2.0
+appVersion: "0.2.0"
+home: https://github.com/efidvir/tfs-ns3-digital-twin
