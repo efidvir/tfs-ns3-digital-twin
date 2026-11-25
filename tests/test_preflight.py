@@ -117,6 +117,15 @@ class PreflightTests(unittest.TestCase):
         self.assertEqual([(f.name, f.rate_mbps) for f in flows], [("backhaul", 200.0)])
         self.assertEqual(ignored, [{"service": "nobw", "reason": "no committed bandwidth"}])
 
+    def test_a_request_can_leave_out_or_resize_existing_services(self):
+        model = pf.build_model(DEVICES, LINKS, {"radio-1": device("MH-T261"), "radio-2": device("MH-T261")},
+                               pf.load_site_plan(), start="region-a")
+        services = [service("backhaul-ran", 200), service("cctv", 100)]
+        flows, ignored = pf.existing_flows(services, model, skip="new", exclude=["cctv"],
+                                           overrides={"backhaul-ran": {"bandwidth_mbps": 120}})
+        self.assertEqual([(f.service, f.rate_mbps) for f in flows], [("backhaul-ran", 120.0)])
+        self.assertEqual(ignored, [{"service": "cctv", "reason": "left out by the request (what-if)"}])
+
     def test_a_slice_that_fits_passes_and_one_that_does_not_is_held(self):
         runner = FakeRunner()
         ok = pf.run_preflight(FakeNdti([service("backhaul", 200)]), runner, {"candidate": {

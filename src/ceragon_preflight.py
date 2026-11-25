@@ -243,16 +243,28 @@ def _service_capacity_mbps(svc: Dict[str, Any]) -> Optional[float]:
     return None
 
 
-def existing_flows(services: List[Dict[str, Any]], model: NetModel, skip: str) -> Tuple[List[Flow], List[Dict[str, Any]]]:
-    """Active services with a committed bandwidth -> flows between their end devices."""
+def existing_flows(services: List[Dict[str, Any]], model: NetModel, skip: str, exclude: Optional[List[str]] = None,
+                   overrides: Optional[Dict[str, Dict[str, Any]]] = None) -> Tuple[List[Flow], List[Dict[str, Any]]]:
+    """
+    Active services with a committed bandwidth -> flows between their end devices.
+    exclude    services to leave out (a what-if without them)
+    overrides  {service: {"bandwidth_mbps": N}}: a service at another rate (a negotiation that shrinks it)
+    """
     flows, ignored = [], []
+    leave_out = set(exclude or [])
+    overrides = overrides or {}
     for svc in services:
         name = svc.get("name") or svc.get("service_id", {}).get("service_uuid", {}).get("uuid")
         status = (svc.get("service_status") or {}).get("service_status", "")
         if name == skip or "ACTIVE" not in str(status):
             continue
+        if name in leave_out:
+            ignored.append({"service": name, "reason": "left out by the request (what-if)"})
+            continue
         eps = svc.get("service_endpoint_ids", []) or []
         rate = _service_capacity_mbps(svc)
+        if name in overrides and overrides[name].get("bandwidth_mbps") is not None:
+            rate = float(overrides[name]["bandwidth_mbps"])
         if len(eps) < 2 or not rate:
             ignored.append({"service": name, "reason": "no committed bandwidth" if not rate else "fewer than two endpoints"})
             continue
@@ -381,7 +393,8 @@ def run_preflight(ndti: Any, runner: Any, body: Dict[str, Any]) -> Dict[str, Any
     """
     ndti     a NetworkDigitalTwinInstance (topology_shadow, tfs_client)
     runner   a CeragonNs3TwinRunner
-    body     {"candidate": {...}, "plan": {...}}
+    body     {"candidate": {...}, "plan": {...}, "exclude": [service, ...],
+              "overrides": {service: {"bandwidth_mbps": N}}}
     """
     cand = Candidate.from_request(body.get("candidate") or {})
     plan = load_site_plan(body.get("plan"))
@@ -409,7 +422,8 @@ def run_preflight(ndti: Any, runner: Any, body: Dict[str, Any]) -> Dict[str, Any
     except Exception as exc:  # the controller may not list services; simulate the slice alone
         logger.info("services unavailable: %s", exc)
         services = []
-    existing, ignored = existing_flows(services, model, skip=cand.slice_id)
+    existing, ignored = existing_flows(services, model, skip=cand.slice_id, exclude=body.get("exclude"),
+                                       overrides=body.get("overrides"))
     slice_flow = Flow(_safe(cand.slice_id), src, dst, cand.bandwidth_mbps, cand.dscp, "slice")
 
     sim_time = float(plan["sim_time_s"])
